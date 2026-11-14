@@ -92,7 +92,7 @@ class DataSeederTest {
         pedido.adicionarItem(new ItemPedido(produto, 1, produto.getPreco(), BigDecimal.ZERO, null));
         pedidoRepository.saveAndFlush(pedido);
 
-        Pedido salvo = pedidoRepository.findByCompradorIdOrderByDataCriacaoDesc(comprador.getId()).get(0);
+        Pedido salvo = pedidoRepository.findByCompradorIdOrderByDataCriacaoDescIdDesc(comprador.getId()).get(0);
         BigDecimal esperado = produto.getPreco().add(acrescimo).multiply(BigDecimal.valueOf(2))
                 .add(produto.getPreco());
 

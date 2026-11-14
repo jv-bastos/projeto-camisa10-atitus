@@ -1,0 +1,414 @@
+{
+  "info": {
+    "name": "Camisa 10 – API",
+    "description": "Testes manuais da API do Camisa 10.\n\nCOMO USAR:\n1. Suba a API: .\\mvnw spring-boot:run \"-Dspring-boot.run.profiles=dev\"\n2. Rode PRIMEIRO a pasta '1. Autenticação' (os logins salvam os tokens sozinhos).\n3. Depois rode qualquer outra requisição.\n\nCada requisição tem testes automáticos (aba 'Test Results' na resposta).\nO banco do perfil dev é recriado a cada reinício da API.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "tokenVendedor", "value": "" },
+    { "key": "tokenComprador", "value": "" },
+    { "key": "produtoCriadoId", "value": "" },
+    { "key": "pedidoId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Autenticação",
+      "item": [
+        {
+          "name": "Login VENDEDOR (salva o token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Perfil VENDEDOR', () => pm.expect(corpo.usuario.perfil).to.eql('VENDEDOR'));",
+                  "pm.test('Não devolve a senha', () => pm.expect(corpo.usuario).to.not.have.property('senhaHash'));",
+                  "pm.collectionVariables.set('tokenVendedor', corpo.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"vendedor@camisa10.com\",\n  \"senha\": \"123456\"\n}" },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Login COMPRADOR (salva o token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const corpo = pm.response.json();",
+                  "pm.test('Perfil COMPRADOR', () => pm.expect(corpo.usuario.perfil).to.eql('COMPRADOR'));",
+                  "pm.collectionVariables.set('tokenComprador', corpo.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"comprador@camisa10.com\",\n  \"senha\": \"123456\"\n}" },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Login com senha errada → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Mensagem em português', () => pm.expect(pm.response.json().mensagem).to.eql('E-mail ou senha inválidos.'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"comprador@camisa10.com\",\n  \"senha\": \"errada\"\n}" },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Cadastro de novo usuário (RF01)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Já devolve token', () => pm.expect(pm.response.json().token).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Torcedor Novo\",\n  \"email\": \"{{$randomEmail}}\",\n  \"senha\": \"123456\",\n  \"perfil\": \"COMPRADOR\"\n}" },
+            "url": "{{baseUrl}}/api/auth/registro"
+          }
+        },
+        {
+          "name": "Cadastro com dados inválidos → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Lista os erros por campo', () => pm.expect(pm.response.json().campos).to.have.property('email'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"\",\n  \"email\": \"nao-e-email\",\n  \"senha\": \"123\"\n}" },
+            "url": "{{baseUrl}}/api/auth/registro"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Catálogo (público, sem token)",
+      "item": [
+        {
+          "name": "Listar categorias",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('4 categorias', () => pm.expect(pm.response.json()).to.have.lengthOf(4));"
+          ] } }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/categorias" }
+        },
+        {
+          "name": "Listar produtos",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Tem produtos', () => pm.expect(pm.response.json().length).to.be.above(0));"
+          ] } }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/produtos" }
+        },
+        {
+          "name": "Buscar por nome (?busca=barcelona)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Só Barcelona', () => pm.response.json().forEach(p => pm.expect(p.nome.toLowerCase()).to.include('barcelona')));"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/produtos?busca=barcelona", "host": ["{{baseUrl}}"], "path": ["api", "produtos"],
+                     "query": [{ "key": "busca", "value": "barcelona" }] }
+          }
+        },
+        {
+          "name": "Filtrar por categoria (?categoriaId=3 = Seleções)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Só Seleções', () => pm.response.json().forEach(p => pm.expect(p.categoria.nome).to.eql('Seleções')));"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/produtos?categoriaId=3", "host": ["{{baseUrl}}"], "path": ["api", "produtos"],
+                     "query": [{ "key": "categoriaId", "value": "3" }] }
+          }
+        },
+        {
+          "name": "Detalhe do produto 5",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Tem as cores da camisa', () => { const p = pm.response.json(); pm.expect(p.corPrincipal).to.match(/^#[0-9A-F]{6}$/); pm.expect(p.corTexto).to.match(/^#[0-9A-F]{6}$/); });"
+          ] } }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/produtos/5" }
+        },
+        {
+          "name": "Configuração da personalização",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Acréscimo R$ 25 e 12 caracteres', () => { const c = pm.response.json(); pm.expect(c.valorAcrescimo).to.eql(25); pm.expect(c.maxCaracteresNome).to.eql(12); });"
+          ] } }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/config/personalizacao" }
+        }
+      ]
+    },
+    {
+      "name": "3. Critérios de aceite",
+      "item": [
+        {
+          "name": "RF15 – Comprador tenta criar produto → 403",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 403 (bloqueado no backend)', () => pm.response.to.have.status(403));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenComprador}}", "type": "string" }] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Camisa Pirata\",\n  \"preco\": 10,\n  \"estoque\": 1,\n  \"categoriaId\": 1,\n  \"corPrincipal\": \"#000000\",\n  \"corTexto\": \"#FFFFFF\"\n}" },
+            "url": "{{baseUrl}}/api/produtos"
+          }
+        },
+        {
+          "name": "Sem token → 401",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 401', () => pm.response.to.have.status(401));"
+          ] } }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/pedidos/meus" }
+        },
+        {
+          "name": "Compra personalizada – total inclui acréscimo",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "const pedido = pm.response.json();",
+            "pm.collectionVariables.set('pedidoId', pedido.id);",
+            "const item1 = pedido.itens[0], item2 = pedido.itens[1];",
+            "const esperado = (item1.precoUnitario + 25) * 2 + item2.precoUnitario;",
+            "pm.test('Total = (preço + 25) x 2 + preço sem personalização', () => pm.expect(pedido.valorTotal).to.be.closeTo(esperado, 0.001));",
+            "pm.test('Nome salvo em MAIÚSCULAS', () => pm.expect(item1.personalizacao.nome).to.eql('RONALDINHO'));",
+            "pm.test('Item 2 sem personalização', () => pm.expect(item2.personalizacao).to.eql(null));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenComprador}}", "type": "string" }] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"itens\": [\n    { \"produtoId\": 5, \"quantidade\": 2, \"personalizacao\": { \"nome\": \"Ronaldinho\", \"numero\": 10 } },\n    { \"produtoId\": 5, \"quantidade\": 1 }\n  ]\n}" },
+            "url": "{{baseUrl}}/api/pedidos"
+          }
+        },
+        {
+          "name": "Nome com 13 caracteres → 400",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 400', () => pm.response.to.have.status(400));",
+            "pm.test('Mensagem clara', () => pm.expect(pm.response.json().mensagem).to.include('12 caracteres'));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenComprador}}", "type": "string" }] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"itens\": [\n    { \"produtoId\": 1, \"quantidade\": 1, \"personalizacao\": { \"nome\": \"ABCDEFGHIJKLM\", \"numero\": 10 } }\n  ]\n}" },
+            "url": "{{baseUrl}}/api/pedidos"
+          }
+        },
+        {
+          "name": "Número 100 → 400",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 400', () => pm.response.to.have.status(400));",
+            "pm.test('Mensagem clara', () => pm.expect(pm.response.json().mensagem).to.include('entre 0 e 99'));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenComprador}}", "type": "string" }] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"itens\": [\n    { \"produtoId\": 1, \"quantidade\": 1, \"personalizacao\": { \"nome\": \"RENATO\", \"numero\": 100 } }\n  ]\n}" },
+            "url": "{{baseUrl}}/api/pedidos"
+          }
+        },
+        {
+          "name": "Mais unidades que o estoque → 400",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 400', () => pm.response.to.have.status(400));",
+            "pm.test('Mensagem de estoque', () => pm.expect(pm.response.json().mensagem).to.include('Estoque insuficiente'));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenComprador}}", "type": "string" }] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"itens\": [\n    { \"produtoId\": 6, \"quantidade\": 999 }\n  ]\n}" },
+            "url": "{{baseUrl}}/api/pedidos"
+          }
+        },
+        {
+          "name": "Histórico do comprador mostra a personalização",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "const id = Number(pm.collectionVariables.get('pedidoId'));",
+            "const pedido = pm.response.json().find(p => p.id === id);",
+            "pm.test('Pedido da compra aparece', () => pm.expect(pedido).to.not.be.undefined);",
+            "pm.test('Com RONALDINHO 10', () => { pm.expect(pedido.itens[0].personalizacao.nome).to.eql('RONALDINHO'); pm.expect(pedido.itens[0].personalizacao.numero).to.eql(10); });"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenComprador}}", "type": "string" }] },
+            "url": "{{baseUrl}}/api/pedidos/meus"
+          }
+        },
+        {
+          "name": "Vendas do vendedor mostram a personalização",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "const id = Number(pm.collectionVariables.get('pedidoId'));",
+            "const venda = pm.response.json().find(v => v.pedidoId === id);",
+            "pm.test('Venda aparece para o vendedor', () => pm.expect(venda).to.not.be.undefined);",
+            "pm.test('Com RONALDINHO 10', () => { pm.expect(venda.itens[0].personalizacao.nome).to.eql('RONALDINHO'); pm.expect(venda.itens[0].personalizacao.numero).to.eql(10); });"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenVendedor}}", "type": "string" }] },
+            "url": "{{baseUrl}}/api/vendedor/vendas"
+          }
+        },
+        {
+          "name": "Vendedor não pode comprar → 403",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 403', () => pm.response.to.have.status(403));"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenVendedor}}", "type": "string" }] },
+            "url": "{{baseUrl}}/api/pedidos/meus"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Área do vendedor",
+      "item": [
+        {
+          "name": "Dashboard (resumo)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Tem os 3 números', () => { const r = pm.response.json(); pm.expect(r).to.have.all.keys('totalProdutos', 'numeroVendas', 'faturamento'); });"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenVendedor}}", "type": "string" }] },
+            "url": "{{baseUrl}}/api/vendedor/resumo"
+          }
+        },
+        {
+          "name": "Meus produtos",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenVendedor}}", "type": "string" }] },
+            "url": "{{baseUrl}}/api/vendedor/produtos"
+          }
+        },
+        {
+          "name": "Criar produto (salva o id)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "pm.collectionVariables.set('produtoCriadoId', pm.response.json().id);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenVendedor}}", "type": "string" }] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Camisa Retrô Brasil 1970\",\n  \"descricao\": \"Réplica da camisa do tri.\",\n  \"preco\": 279.90,\n  \"estoque\": 12,\n  \"categoriaId\": 4,\n  \"corPrincipal\": \"#FFD100\",\n  \"corTexto\": \"#00843D\"\n}" },
+            "url": "{{baseUrl}}/api/produtos"
+          }
+        },
+        {
+          "name": "Editar o produto criado",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Preço atualizado', () => pm.expect(pm.response.json().preco).to.eql(249.9));"
+          ] } }],
+          "request": {
+            "method": "PUT",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenVendedor}}", "type": "string" }] },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Camisa Retrô Brasil 1970\",\n  \"descricao\": \"Réplica da camisa do tri. PROMOÇÃO!\",\n  \"preco\": 249.90,\n  \"estoque\": 12,\n  \"categoriaId\": 4,\n  \"corPrincipal\": \"#FFD100\",\n  \"corTexto\": \"#00843D\"\n}" },
+            "url": "{{baseUrl}}/api/produtos/{{produtoCriadoId}}"
+          }
+        },
+        {
+          "name": "Excluir o produto criado (exclusão lógica)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 204', () => pm.response.to.have.status(204));"
+          ] } }],
+          "request": {
+            "method": "DELETE",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenVendedor}}", "type": "string" }] },
+            "url": "{{baseUrl}}/api/produtos/{{produtoCriadoId}}"
+          }
+        },
+        {
+          "name": "Produto excluído some do catálogo → 404",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 404', () => pm.response.to.have.status(404));"
+          ] } }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/produtos/{{produtoCriadoId}}" }
+        }
+      ]
+    },
+    {
+      "name": "5. Upload de imagem (manual)",
+      "description": "Antes de enviar: aba Body → form-data → na linha 'imagem', clique em 'Select files' e escolha uma foto JPG/PNG/WEBP de até 5 MB.",
+      "item": [
+        {
+          "name": "Enviar foto do produto 1",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Devolve a URL da imagem', () => pm.expect(pm.response.json().imagemUrl).to.match(/^\\/uploads\\//));",
+            "console.log('Abra no navegador: ' + pm.collectionVariables.get('baseUrl') + pm.response.json().imagemUrl);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenVendedor}}", "type": "string" }] },
+            "body": { "mode": "formdata", "formdata": [{ "key": "imagem", "type": "file", "src": [] }] },
+            "url": "{{baseUrl}}/api/produtos/1/imagem"
+          }
+        }
+      ]
+    }
+  ]
+}
