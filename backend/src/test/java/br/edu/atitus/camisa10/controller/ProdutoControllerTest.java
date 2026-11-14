@@ -132,15 +132,22 @@ class ProdutoControllerTest extends ApiTestBase {
 
         mvc.perform(get("/api/produtos").param("categoriaId", selecoes.toString()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$", hasSize(4)))
                 .andExpect(jsonPath("$[*].categoria.nome", everyItem(is("Seleções"))));
 
         mvc.perform(get("/api/produtos").param("busca", "barcelona"))
                 .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].nome").value("Camisa Barcelona I 2026"));
+                .andExpect(jsonPath("$[0].nome").value("Camisa Barcelona 26/27"));
+
+        // a busca ignora acentos e maiúsculas
+        mvc.perform(get("/api/produtos").param("busca", "GREMIO"))
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].nome").value("Camisa Grêmio 26/27"));
+        mvc.perform(get("/api/produtos").param("busca", "selecao bras"))
+                .andExpect(jsonPath("$[0].nome").value("Camisa Seleção Brasileira 26/27"));
 
         mvc.perform(get("/api/produtos"))
-                .andExpect(jsonPath("$", hasSize(6)));
+                .andExpect(jsonPath("$", hasSize(41)));
     }
 
     @Test

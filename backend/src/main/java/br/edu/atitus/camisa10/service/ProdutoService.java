@@ -18,6 +18,7 @@ import br.edu.atitus.camisa10.model.Usuario;
 import br.edu.atitus.camisa10.repository.CategoriaRepository;
 import br.edu.atitus.camisa10.repository.ProdutoRepository;
 import br.edu.atitus.camisa10.repository.UsuarioRepository;
+import br.edu.atitus.camisa10.util.TextoBusca;
 
 /**
  * Catálogo (RF09, RF10) e CRUD de produtos do vendedor (RF04, RF05, RF08).
@@ -47,7 +48,7 @@ public class ProdutoService {
 
     @Transactional(readOnly = true)
     public List<ProdutoResponse> listarCatalogo(Long categoriaId, String busca) {
-        String termo = busca == null ? "" : busca.trim();
+        String termo = TextoBusca.normalizar(busca); // "Grêmio" e "gremio" dão o mesmo resultado
         return produtoRepository.buscarCatalogo(categoriaId, termo).stream().map(ProdutoResponse::de).toList();
     }
 

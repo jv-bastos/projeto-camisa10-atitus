@@ -12,6 +12,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+import br.edu.atitus.camisa10.util.TextoBusca;
+
 /**
  * Camisa vendida no app.
  *
@@ -30,6 +32,10 @@ public class Produto {
 
     @Column(nullable = false, length = 120)
     private String nome;
+
+    /** Nome sem acentos e em minúsculas, usado só na busca do catálogo (ver TextoBusca). */
+    @Column(name = "nome_busca", length = 120)
+    private String nomeBusca;
 
     @Column(length = 1000)
     private String descricao;
@@ -67,7 +73,7 @@ public class Produto {
 
     public Produto(String nome, String descricao, BigDecimal preco, Integer estoque,
                    String corPrincipal, String corTexto, Categoria categoria, Usuario vendedor) {
-        this.nome = nome;
+        setNome(nome);
         this.descricao = descricao;
         this.preco = preco;
         this.estoque = estoque;
@@ -87,6 +93,11 @@ public class Produto {
 
     public void setNome(String nome) {
         this.nome = nome;
+        this.nomeBusca = TextoBusca.normalizar(nome);
+    }
+
+    public String getNomeBusca() {
+        return nomeBusca;
     }
 
     public String getDescricao() {

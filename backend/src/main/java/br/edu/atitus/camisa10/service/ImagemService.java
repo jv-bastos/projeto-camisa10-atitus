@@ -12,6 +12,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -58,6 +59,26 @@ public class ImagemService {
             Files.copy(conteudo, pasta.resolve(nomeArquivo), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             throw new IllegalStateException("Falha ao salvar a imagem.", e);
+        }
+        return PREFIXO_URL + nomeArquivo;
+    }
+
+    /**
+     * Copia uma foto que vem dentro do projeto (src/main/resources/seed/camisas) para a pasta
+     * de uploads e devolve a URL dela. Usado pelo DataSeeder nas camisas de exemplo.
+     * Retorna null se a foto não existir, para o seed continuar sem imagem.
+     */
+    public String copiarFotoDeExemplo(String arquivo) {
+        ClassPathResource origem = new ClassPathResource("seed/camisas/" + arquivo);
+        if (!origem.exists()) {
+            log.warn("Foto de exemplo não encontrada: {}", arquivo);
+            return null;
+        }
+        String nomeArquivo = "exemplo-" + arquivo;
+        try (InputStream conteudo = origem.getInputStream()) {
+            Files.copy(conteudo, pasta.resolve(nomeArquivo), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new IllegalStateException("Falha ao copiar a foto de exemplo " + arquivo, e);
         }
         return PREFIXO_URL + nomeArquivo;
     }

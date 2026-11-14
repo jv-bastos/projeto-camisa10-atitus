@@ -46,7 +46,7 @@ class PedidoControllerTest extends ApiTestBase {
 
     @Test
     void totalDeveIncluirOAcrescimoDeCadaCamisaPersonalizada() throws Exception {
-        Produto selecao = produto("Seleção");
+        Produto selecao = produto("Seleção Brasileira");
         int estoqueAntes = estoque(selecao);
 
         // 2 camisas personalizadas + 1 sem personalização
@@ -103,7 +103,7 @@ class PedidoControllerTest extends ApiTestBase {
         comprar(umItem(holanda.getId(), estoqueAntes + 1, null, null))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.mensagem").value(
-                        "Estoque insuficiente para \"Camisa Retrô Holanda 1988\". Disponível: " + estoqueAntes + "."));
+                        "Estoque insuficiente para \"Camisa Retrô Holanda 1980\". Disponível: " + estoqueAntes + "."));
 
         assertThat(pedidoRepository.count()).isEqualTo(pedidosAntes);
         assertThat(estoque(holanda)).isEqualTo(estoqueAntes);

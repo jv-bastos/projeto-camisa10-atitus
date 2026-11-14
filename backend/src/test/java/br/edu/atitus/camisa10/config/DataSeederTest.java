@@ -23,6 +23,7 @@ import br.edu.atitus.camisa10.repository.CategoriaRepository;
 import br.edu.atitus.camisa10.repository.PedidoRepository;
 import br.edu.atitus.camisa10.repository.ProdutoRepository;
 import br.edu.atitus.camisa10.repository.UsuarioRepository;
+import br.edu.atitus.camisa10.service.ImagemService;
 
 /**
  * Sobe a aplicação com H2 (perfil dev) e confere o seed e o mapeamento JPA.
@@ -43,6 +44,8 @@ class DataSeederTest {
     private PedidoRepository pedidoRepository;
     @Autowired
     private PasswordEncoder passwordEncoder;
+    @Autowired
+    private ImagemService imagemService;
 
     @Test
     void deveCriarUsuariosDeTesteComSenhaCriptografada() {
@@ -57,26 +60,31 @@ class DataSeederTest {
     }
 
     @Test
-    void deveCriarAsQuatroCategorias() {
+    void deveCriarAsDezCategoriasNaOrdemDoApp() {
         List<String> nomes = categoriaRepository.findAllByOrderByIdAsc().stream()
                 .map(Categoria::getNome).toList();
 
-        assertThat(nomes).containsExactly("Nacional", "Internacional", "Seleções", "Retrô");
+        assertThat(nomes).containsExactly("Brasileirão", "Argentino", "Alemão", "Espanhol", "Francês",
+                "Italiano", "Seleções", "Retrô", "Manga Longa", "Manga Longa Retrô");
     }
 
     @Test
-    void deveCriarSeisCamisasDoVendedorComCoresDefinidas() {
+    void deveCriarCamisasDoVendedorComCoresEFotoEmTodasAsCategorias() {
         Usuario vendedor = usuarioRepository.findByEmail("vendedor@camisa10.com").orElseThrow();
         List<Produto> produtos = produtoRepository.findByVendedorIdAndAtivoTrueOrderByNomeAsc(vendedor.getId());
 
-        assertThat(produtos).hasSize(6);
+        assertThat(produtos).hasSize(41);
         assertThat(produtos).allSatisfy(p -> {
             assertThat(p.getCorPrincipal()).matches("#[0-9A-F]{6}");
             assertThat(p.getCorTexto()).matches("#[0-9A-F]{6}");
             assertThat(p.getEstoque()).isPositive();
+            // a foto foi copiada para a pasta de uploads e existe de verdade
+            assertThat(p.getImagemUrl()).startsWith(ImagemService.PREFIXO_URL);
+            assertThat(imagemService.getPasta()
+                    .resolve(p.getImagemUrl().substring(ImagemService.PREFIXO_URL.length()))).exists();
         });
         // todas as categorias têm pelo menos uma camisa
-        assertThat(produtos.stream().map(p -> p.getCategoria().getNome()).distinct()).hasSize(4);
+        assertThat(produtos.stream().map(p -> p.getCategoria().getNome()).distinct()).hasSize(10);
     }
 
     @Test

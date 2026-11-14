@@ -134,7 +134,7 @@
           "name": "Listar categorias",
           "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
             "pm.test('Status 200', () => pm.response.to.have.status(200));",
-            "pm.test('4 categorias', () => pm.expect(pm.response.json()).to.have.lengthOf(4));"
+            "pm.test('10 categorias', () => pm.expect(pm.response.json()).to.have.lengthOf(10));"
           ] } }],
           "request": { "method": "GET", "url": "{{baseUrl}}/api/categorias" }
         },
@@ -159,24 +159,24 @@
           }
         },
         {
-          "name": "Filtrar por categoria (?categoriaId=3 = Seleções)",
+          "name": "Filtrar por categoria (?categoriaId=7 = Seleções)",
           "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
             "pm.test('Status 200', () => pm.response.to.have.status(200));",
             "pm.test('Só Seleções', () => pm.response.json().forEach(p => pm.expect(p.categoria.nome).to.eql('Seleções')));"
           ] } }],
           "request": {
             "method": "GET",
-            "url": { "raw": "{{baseUrl}}/api/produtos?categoriaId=3", "host": ["{{baseUrl}}"], "path": ["api", "produtos"],
-                     "query": [{ "key": "categoriaId", "value": "3" }] }
+            "url": { "raw": "{{baseUrl}}/api/produtos?categoriaId=7", "host": ["{{baseUrl}}"], "path": ["api", "produtos"],
+                     "query": [{ "key": "categoriaId", "value": "7" }] }
           }
         },
         {
-          "name": "Detalhe do produto 5",
+          "name": "Detalhe do produto 26 (Seleção Brasileira)",
           "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
             "pm.test('Status 200', () => pm.response.to.have.status(200));",
             "pm.test('Tem as cores da camisa', () => { const p = pm.response.json(); pm.expect(p.corPrincipal).to.match(/^#[0-9A-F]{6}$/); pm.expect(p.corTexto).to.match(/^#[0-9A-F]{6}$/); });"
           ] } }],
-          "request": { "method": "GET", "url": "{{baseUrl}}/api/produtos/5" }
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/produtos/26" }
         },
         {
           "name": "Configuração da personalização",
@@ -227,7 +227,7 @@
             "method": "POST",
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenComprador}}", "type": "string" }] },
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"itens\": [\n    { \"produtoId\": 5, \"quantidade\": 2, \"personalizacao\": { \"nome\": \"Ronaldinho\", \"numero\": 10 } },\n    { \"produtoId\": 5, \"quantidade\": 1 }\n  ]\n}" },
+            "body": { "mode": "raw", "raw": "{\n  \"itens\": [\n    { \"produtoId\": 26, \"quantidade\": 2, \"personalizacao\": { \"nome\": \"Ronaldinho\", \"numero\": 10 } },\n    { \"produtoId\": 26, \"quantidade\": 1 }\n  ]\n}" },
             "url": "{{baseUrl}}/api/pedidos"
           }
         },
@@ -269,7 +269,7 @@
             "method": "POST",
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenComprador}}", "type": "string" }] },
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"itens\": [\n    { \"produtoId\": 6, \"quantidade\": 999 }\n  ]\n}" },
+            "body": { "mode": "raw", "raw": "{\n  \"itens\": [\n    { \"produtoId\": 31, \"quantidade\": 999 }\n  ]\n}" },
             "url": "{{baseUrl}}/api/pedidos"
           }
         },
@@ -352,7 +352,7 @@
             "method": "POST",
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenVendedor}}", "type": "string" }] },
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Camisa Retrô Brasil 1970\",\n  \"descricao\": \"Réplica da camisa do tri.\",\n  \"preco\": 279.90,\n  \"estoque\": 12,\n  \"categoriaId\": 4,\n  \"corPrincipal\": \"#FFD100\",\n  \"corTexto\": \"#00843D\"\n}" },
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Camisa Retrô Brasil 1970\",\n  \"descricao\": \"Réplica da camisa do tri.\",\n  \"preco\": 279.90,\n  \"estoque\": 12,\n  \"categoriaId\": 8,\n  \"corPrincipal\": \"#FFD100\",\n  \"corTexto\": \"#00843D\"\n}" },
             "url": "{{baseUrl}}/api/produtos"
           }
         },
@@ -366,7 +366,7 @@
             "method": "PUT",
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenVendedor}}", "type": "string" }] },
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Camisa Retrô Brasil 1970\",\n  \"descricao\": \"Réplica da camisa do tri. PROMOÇÃO!\",\n  \"preco\": 249.90,\n  \"estoque\": 12,\n  \"categoriaId\": 4,\n  \"corPrincipal\": \"#FFD100\",\n  \"corTexto\": \"#00843D\"\n}" },
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Camisa Retrô Brasil 1970\",\n  \"descricao\": \"Réplica da camisa do tri. PROMOÇÃO!\",\n  \"preco\": 249.90,\n  \"estoque\": 12,\n  \"categoriaId\": 8,\n  \"corPrincipal\": \"#FFD100\",\n  \"corTexto\": \"#00843D\"\n}" },
             "url": "{{baseUrl}}/api/produtos/{{produtoCriadoId}}"
           }
         },
