@@ -1,0 +1,12 @@
+# Fotos baixadas do Drive (1.294 imagens, ~180 MB): ficam só na máquina.
+# As 41 usadas como exemplo já estão em backend/src/main/resources/seed/camisas.
+imagens-drive/
+
+# Arquivos que o aplicativo Postman cria ao sincronizar o workspace na nuvem.
+# A coleção oficial do projeto é backend/postman/Camisa10.postman_collection.json.
+.postman/
+postman/
+
+# Sistema operacional
+Thumbs.db
+.DS_Store
