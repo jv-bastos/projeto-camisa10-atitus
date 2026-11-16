@@ -4,6 +4,9 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import CadastroScreen from '../screens/auth/CadastroScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
+import ProdutoScreen from '../screens/comprador/ProdutoScreen';
+import CatalogoFotosScreen from '../screens/vendedor/CatalogoFotosScreen';
+import ProdutoFormScreen from '../screens/vendedor/ProdutoFormScreen';
 import { cores } from '../theme';
 import CompradorTabs from './CompradorTabs';
 import VendedorTabs from './VendedorTabs';
@@ -37,9 +40,18 @@ export default function RootNavigator() {
           <Pilha.Screen name="Cadastro" component={CadastroScreen} />
         </>
       ) : usuario.perfil === 'VENDEDOR' ? (
-        <Pilha.Screen name="AreaVendedor" component={VendedorTabs} />
+        <>
+          <Pilha.Screen name="AreaVendedor" component={VendedorTabs} />
+          {/* cadastro/edição abre por cima das abas */}
+          <Pilha.Screen name="ProdutoForm" component={ProdutoFormScreen} />
+          <Pilha.Screen name="CatalogoFotos" component={CatalogoFotosScreen} />
+        </>
       ) : (
-        <Pilha.Screen name="AreaComprador" component={CompradorTabs} />
+        <>
+          <Pilha.Screen name="AreaComprador" component={CompradorTabs} />
+          {/* o detalhe abre por cima das abas, com animação de "empurrar" */}
+          <Pilha.Screen name="Produto" component={ProdutoScreen} />
+        </>
       )}
     </Pilha.Navigator>
   );

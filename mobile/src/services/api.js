@@ -46,7 +46,7 @@ api.interceptors.response.use(
 /** Mensagem amigável para mostrar ao usuário, vinda do backend (campo "mensagem") ou da conexão. */
 export function mensagemDeErro(erro) {
   if (!erro.response) {
-    return 'Não foi possível conectar ao servidor. Verifique sua internet e a URL da API em src/config.js.';
+    return 'Não foi possível conectar ao servidor. Verifique se a API está rodando e o endereço dela (mobile/.env.local ou src/config.js).';
   }
   return erro.response.data?.mensagem || 'Ocorreu um erro inesperado. Tente novamente.';
 }

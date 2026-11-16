@@ -72,8 +72,3 @@ export const tipografia = {
 
 /** Altura mínima de áreas tocáveis (acessibilidade e zona do polegar). */
 export const ALTURA_BOTAO = 56;
-
-/** Formata número como preço brasileiro: 299.9 → "R$ 299,90". */
-export function formatarPreco(valor) {
-  return `R$ ${Number(valor).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
-}

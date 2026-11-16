@@ -31,6 +31,14 @@ const DESENHOS = {
     </>
   ),
   mais: <Path d="M12 5v14M5 12h14" />,
+  filtro: (
+    <>
+      <Path d="M4 6h16M4 12h16M4 18h16" />
+      <Circle cx="9" cy="6" r="2" />
+      <Circle cx="15" cy="12" r="2" />
+      <Circle cx="7" cy="18" r="2" />
+    </>
+  ),
   menos: <Path d="M5 12h14" />,
   lixeira: <Path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />,
   editar: <Path d="M4 20h4L19 9l-4-4L4 16v4z" />,

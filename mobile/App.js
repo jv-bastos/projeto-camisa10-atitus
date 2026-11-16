@@ -11,6 +11,7 @@ import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider } from './src/contexts/AuthContext';
+import { CarrinhoProvider } from './src/contexts/CarrinhoContext';
 import RootNavigator from './src/navigation/RootNavigator';
 import { temaNavegacao } from './src/navigation/tema';
 import { cores } from './src/theme';
@@ -41,10 +42,12 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <NavigationContainer theme={temaNavegacao}>
-          <RootNavigator />
-          <StatusBar style="light" />
-        </NavigationContainer>
+        <CarrinhoProvider>
+          <NavigationContainer theme={temaNavegacao}>
+            <RootNavigator />
+            <StatusBar style="light" />
+          </NavigationContainer>
+        </CarrinhoProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );

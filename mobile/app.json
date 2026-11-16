@@ -23,7 +23,15 @@
     },
     "plugins": [
       "expo-secure-store",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O Camisa 10 usa suas fotos para você escolher a imagem das camisas que vende.",
+          "cameraPermission": "O Camisa 10 usa a câmera para você fotografar as camisas que vende.",
+          "microphonePermission": false
+        }
+      ]
     ]
   }
 }

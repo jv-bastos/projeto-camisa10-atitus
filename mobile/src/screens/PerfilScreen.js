@@ -1,9 +1,9 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import Botao from '../../components/Botao';
-import LayoutComRodape from '../../components/LayoutComRodape';
-import { useAuth } from '../../contexts/AuthContext';
-import { cores, espacos, fontes, raios, tipografia } from '../../theme';
+import Botao from '../components/Botao';
+import LayoutComRodape from '../components/LayoutComRodape';
+import { useAuth } from '../contexts/AuthContext';
+import { cores, espacos, fontes, raios, tipografia } from '../theme';
 
 /** Perfil do usuário, com o logout (RF03) na zona do polegar. */
 export default function PerfilScreen() {
