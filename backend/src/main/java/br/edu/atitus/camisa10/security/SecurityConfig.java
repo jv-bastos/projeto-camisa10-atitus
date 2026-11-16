@@ -49,12 +49,13 @@ public class SecurityConfig {
                 // --- Públicos ---
                 .requestMatchers(HttpMethod.POST, "/api/auth/registro", "/api/auth/login").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/categorias", "/api/produtos", "/api/produtos/*",
-                        "/api/config/**", "/uploads/**").permitAll()
+                        "/api/config/**", "/uploads/**", "/catalogo-fotos/**").permitAll()
                 .requestMatchers("/h2-console/**", "/error").permitAll()
 
                 // --- VENDEDOR (RF04 a RF08, RF15) ---
                 .requestMatchers("/api/vendedor/**").hasRole(VENDEDOR)
-                .requestMatchers(HttpMethod.POST, "/api/produtos", "/api/produtos/*/imagem").hasRole(VENDEDOR)
+                .requestMatchers(HttpMethod.POST, "/api/produtos", "/api/produtos/*/imagem",
+                        "/api/produtos/*/imagem-catalogo").hasRole(VENDEDOR)
                 .requestMatchers(HttpMethod.PUT, "/api/produtos/*").hasRole(VENDEDOR)
                 .requestMatchers(HttpMethod.DELETE, "/api/produtos/*").hasRole(VENDEDOR)
 

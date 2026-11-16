@@ -14,6 +14,7 @@ import br.edu.atitus.camisa10.model.ItemPedido;
 import br.edu.atitus.camisa10.model.Pedido;
 import br.edu.atitus.camisa10.model.Personalizacao;
 import br.edu.atitus.camisa10.model.Produto;
+import br.edu.atitus.camisa10.model.Tamanho;
 import br.edu.atitus.camisa10.repository.PedidoRepository;
 import br.edu.atitus.camisa10.repository.ProdutoRepository;
 import br.edu.atitus.camisa10.repository.UsuarioRepository;
@@ -60,17 +61,21 @@ public class PedidoService {
             Personalizacao personalizacao = personalizacaoService.validar(itemDados.personalizacao());
             BigDecimal acrescimo = personalizacao == null ? BigDecimal.ZERO : personalizacaoService.getValorAcrescimo();
 
-            // 2) confere e baixa o estoque. Se o mesmo produto aparecer em duas linhas
-            //    (personalizações diferentes), a segunda já enxerga o estoque reduzido.
+            // 2) confere e baixa o estoque DO TAMANHO escolhido. Se o mesmo produto/tamanho
+            //    aparecer em duas linhas (personalizações diferentes), a segunda já enxerga
+            //    o estoque reduzido.
+            Tamanho tamanho = itemDados.tamanho();
             int quantidade = itemDados.quantidade();
-            if (produto.getEstoque() < quantidade) {
+            int disponivel = produto.getEstoque(tamanho);
+            if (disponivel < quantidade) {
                 throw new RegraNegocioException("Estoque insuficiente para \"" + produto.getNome()
-                        + "\". Disponível: " + produto.getEstoque() + ".");
+                        + "\" (tamanho " + tamanho + "). Disponível: " + disponivel + ".");
             }
-            produto.setEstoque(produto.getEstoque() - quantidade);
+            produto.baixarEstoque(tamanho, quantidade);
 
-            // 3) grava preço e acréscimo do momento da compra; adicionarItem soma o total
-            pedido.adicionarItem(new ItemPedido(produto, quantidade, produto.getPreco(), acrescimo, personalizacao));
+            // 3) grava tamanho, preço e acréscimo do momento da compra; adicionarItem soma o total
+            pedido.adicionarItem(new ItemPedido(produto, tamanho, quantidade, produto.getPreco(), acrescimo,
+                    personalizacao));
         }
 
         return PedidoResponse.de(pedidoRepository.save(pedido));

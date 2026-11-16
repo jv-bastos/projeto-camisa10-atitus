@@ -9,7 +9,7 @@ class TextoBuscaTest {
 
     @ParameterizedTest
     @CsvSource({
-            "Grêmio, gremio",
+            "São Paulo, sao paulo",
             "  SELEÇÃO Brasileira  , selecao brasileira",
             "Mônaco, monaco",
             "Atlético de Madrid, atletico de madrid",

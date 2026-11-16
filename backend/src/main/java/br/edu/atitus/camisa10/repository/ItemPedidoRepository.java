@@ -24,6 +24,10 @@ public interface ItemPedidoRepository extends JpaRepository<ItemPedido, Long> {
             """)
     List<ItemPedido> buscarVendasDoVendedor(@Param("vendedorId") Long vendedorId);
 
+    /** Unidades vendidas de cada produto: linhas [produtoId, quantidade]. Usado em "Mais vendidas". */
+    @Query("select i.produto.id, sum(i.quantidade) from ItemPedido i group by i.produto.id")
+    List<Object[]> somarUnidadesVendidasPorProduto();
+
     /** Número de pedidos diferentes que contêm produtos do vendedor. */
     @Query("select count(distinct i.pedido.id) from ItemPedido i where i.produto.vendedor.id = :vendedorId")
     long contarPedidosDoVendedor(@Param("vendedorId") Long vendedorId);

@@ -1,6 +1,7 @@
 package br.edu.atitus.camisa10.config;
 
 import java.math.BigDecimal;
+import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -8,6 +9,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,11 +17,13 @@ import org.springframework.transaction.annotation.Transactional;
 import br.edu.atitus.camisa10.model.Categoria;
 import br.edu.atitus.camisa10.model.Perfil;
 import br.edu.atitus.camisa10.model.Produto;
+import br.edu.atitus.camisa10.model.Tamanho;
 import br.edu.atitus.camisa10.model.Usuario;
 import br.edu.atitus.camisa10.repository.CategoriaRepository;
 import br.edu.atitus.camisa10.repository.ProdutoRepository;
 import br.edu.atitus.camisa10.repository.UsuarioRepository;
 import br.edu.atitus.camisa10.service.ImagemService;
+import br.edu.atitus.camisa10.util.AnoCamisa;
 
 /**
  * Popula o banco com dados de exemplo na inicialização.
@@ -33,6 +37,7 @@ import br.edu.atitus.camisa10.service.ImagemService;
  * para a pasta de uploads, como se o vendedor tivesse enviado cada uma.
  */
 @Component
+@Order(2) // depois das MigracoesBanco
 public class DataSeeder implements CommandLineRunner {
 
     public static final String SENHA_PADRAO = "123456";
@@ -45,7 +50,7 @@ public class DataSeeder implements CommandLineRunner {
     private static final Logger log = LoggerFactory.getLogger(DataSeeder.class);
 
     /** Dados de uma camisa de exemplo. As cores são usadas na personalização (nome/número). */
-    private record Camisa(String categoria, String nome, String descricao, String preco, int estoque,
+    private record Camisa(List<String> categorias, String nome, String descricao, String preco, int estoque,
                           String corPrincipal, String corTexto, String foto) {
     }
 
@@ -82,27 +87,71 @@ public class DataSeeder implements CommandLineRunner {
             torcedor("Italiano", "Juventus", "26/27", "349.90", 11, "#F4A7C3", "#111111", "juventus-26-27.jpg"),
             torcedor("Italiano", "Napoli", "26/27", "329.90", 9, "#D7262C", "#FFFFFF", "napoli-26-27.jpg"),
             // --- Seleções ---
-            new Camisa("Seleções", "Camisa Seleção Brasileira 26/27",
+            new Camisa(List.of("Seleções"), "Camisa Seleção Brasileira 26/27",
                     "A amarelinha da Copa do Mundo, com o escudo da CBF e as cinco estrelas.",
                     "399.90", 30, "#FFDC02", "#009C3B", "brasil-26-27.jpg"),
             selecao("Argentina", "379.90", 15, "#75AADB", "#111111", "argentina-26-27.jpg"),
             selecao("Alemanha", "379.90", 10, "#FFFFFF", "#111111", "alemanha-26-27.jpg"),
             selecao("Portugal", "379.90", 12, "#C8102E", "#FFFFFF", "portugal-26-27.jpg"),
             // --- Retrô ---
-            retro("Retrô", "Brasil", "2002", "259.90", 10, "#FFDC02", "#009C3B", "retro-brasil-2002.jpg"),
-            retro("Retrô", "Holanda", "1980", "259.90", 5, "#F36C21", "#000000", "retro-holanda-1980.jpg"),
-            retro("Retrô", "Real Madrid", "2003", "259.90", 6, "#1C2541", "#FFFFFF", "retro-real-madrid-2003.jpg"),
-            retro("Retrô", "Corinthians", "2000", "259.90", 8, "#111111", "#FFFFFF", "retro-corinthians-2000.jpg"),
+            retro(List.of("Retrô", "Seleções"), "Brasil", "2002", "259.90", 10, "#FFDC02", "#009C3B", "retro-brasil-2002.jpg"),
+            retro(List.of("Retrô", "Seleções"), "Holanda", "1980", "259.90", 5, "#F36C21", "#000000", "retro-holanda-1980.jpg"),
+            retro(List.of("Retrô", "Espanhol"), "Real Madrid", "2003", "259.90", 6, "#1C2541", "#FFFFFF", "retro-real-madrid-2003.jpg"),
+            retro(List.of("Retrô", "Brasileirão"), "Corinthians", "2000", "259.90", 8, "#111111", "#FFFFFF", "retro-corinthians-2000.jpg"),
             // --- Manga Longa (torcedor) ---
-            mangaLonga("Cruzeiro", "26/27", "329.90", 8, "#FFFFFF", "#0033A0", "manga-longa-cruzeiro-26-27.jpg"),
-            mangaLonga("Benfica", "25/26", "319.90", 6, "#E30613", "#FFFFFF", "manga-longa-benfica-25-26.jpg"),
-            mangaLonga("Ajax", "22/23", "289.90", 5, "#1E2A5A", "#FFFFFF", "manga-longa-ajax-22-23.jpg"),
-            mangaLonga("Inter Miami", "26/27", "329.90", 7, "#111111", "#F7B5CD", "manga-longa-inter-de-miami-26-27.jpg"),
+            mangaLonga(List.of("Manga Longa", "Brasileirão"), "Cruzeiro", "26/27", "329.90", 8, "#FFFFFF", "#0033A0", "manga-longa-cruzeiro-26-27.jpg"),
+            mangaLonga(List.of("Manga Longa"), "Benfica", "25/26", "319.90", 6, "#E30613", "#FFFFFF", "manga-longa-benfica-25-26.jpg"),
+            mangaLonga(List.of("Manga Longa"), "Ajax", "22/23", "289.90", 5, "#1E2A5A", "#FFFFFF", "manga-longa-ajax-22-23.jpg"),
+            mangaLonga(List.of("Manga Longa"), "Inter Miami", "26/27", "329.90", 7, "#111111", "#F7B5CD", "manga-longa-inter-de-miami-26-27.jpg"),
             // --- Manga Longa Retrô ---
-            retro("Manga Longa Retrô", "Internacional", "2006", "289.90", 6, "#C8102E", "#FFFFFF", "manga-longa-retro-internacional-2006.jpg"),
-            retro("Manga Longa Retrô", "Inglaterra", "1990", "289.90", 5, "#FFFFFF", "#1D2B5A", "manga-longa-retro-inglaterra-1990.jpg"),
-            retro("Manga Longa Retrô", "Alemanha", "90/91", "289.90", 4, "#1F9E6E", "#FFFFFF", "manga-longa-retro-alemanha-90-91.jpg"),
-            retro("Manga Longa Retrô", "Napoli", "98/99", "289.90", 4, "#FFFFFF", "#12A0D7", "manga-longa-retro-napoli-98-99.jpg"));
+            retro(List.of("Manga Longa Retrô", "Brasileirão"), "Internacional", "2006", "289.90", 6, "#C8102E", "#FFFFFF", "manga-longa-retro-internacional-2006.jpg"),
+            retro(List.of("Manga Longa Retrô", "Seleções"), "Inglaterra", "1990", "289.90", 5, "#FFFFFF", "#1D2B5A", "manga-longa-retro-inglaterra-1990.jpg"),
+            retro(List.of("Manga Longa Retrô", "Seleções"), "Alemanha", "90/91", "289.90", 4, "#1F9E6E", "#FFFFFF", "manga-longa-retro-alemanha-90-91.jpg"),
+            retro(List.of("Manga Longa Retrô", "Italiano"), "Napoli", "98/99", "289.90", 4, "#FFFFFF", "#12A0D7", "manga-longa-retro-napoli-98-99.jpg"));
+
+    /** Marca de cada camisa de exemplo, conferida pelo logo na foto (chave = arquivo da foto). */
+    private static final Map<String, String> MARCAS = Map.ofEntries(
+            Map.entry("gremio-26-27.jpg", "New Balance"),
+            Map.entry("internacional-26-27.jpg", "Adidas"),
+            Map.entry("flamengo-26-27.jpg", "Adidas"),
+            Map.entry("corinthians-26-27.jpg", "Nike"),
+            Map.entry("palmeiras-26-27.jpg", "Puma"),
+            Map.entry("boca-juniors-26-27.jpg", "Adidas"),
+            Map.entry("river-plate-26-27.jpg", "Adidas"),
+            Map.entry("racing-26-27.jpg", "Nike"),
+            Map.entry("independiente-25-26.jpg", "Puma"),
+            Map.entry("bayern-de-munique-26-27.jpg", "Adidas"),
+            Map.entry("borussia-dortmund-26-27.jpg", "Puma"),
+            Map.entry("bayer-leverkusen-24-25.jpg", "Castore"),
+            Map.entry("red-bull-leipzig-26-27.jpg", "Puma"),
+            Map.entry("barcelona-26-27.jpg", "Nike"),
+            Map.entry("real-madrid-26-27.jpg", "Adidas"),
+            Map.entry("atletico-de-madrid-26-27.jpg", "Nike"),
+            Map.entry("atletico-bilbao-26-27.jpg", "Castore"),
+            Map.entry("psg-26-27.jpg", "Nike"),
+            Map.entry("olympique-de-marseille-26-27.jpg", "Puma"),
+            Map.entry("lyon-26-27.jpg", "Adidas"),
+            Map.entry("monaco-26-27.jpg", "Kappa"),
+            Map.entry("milan-26-27.jpg", "Puma"),
+            Map.entry("inter-de-milao-26-27.jpg", "Nike"),
+            Map.entry("juventus-26-27.jpg", "Adidas"),
+            Map.entry("napoli-26-27.jpg", "EA7"),
+            Map.entry("brasil-26-27.jpg", "Nike"),
+            Map.entry("argentina-26-27.jpg", "Adidas"),
+            Map.entry("alemanha-26-27.jpg", "Adidas"),
+            Map.entry("portugal-26-27.jpg", "Puma"),
+            Map.entry("retro-brasil-2002.jpg", "Nike"),
+            Map.entry("retro-holanda-1980.jpg", "Adidas"),
+            Map.entry("retro-real-madrid-2003.jpg", "Adidas"),
+            Map.entry("retro-corinthians-2000.jpg", "Topper"),
+            Map.entry("manga-longa-cruzeiro-26-27.jpg", "Adidas"),
+            Map.entry("manga-longa-benfica-25-26.jpg", "Adidas"),
+            Map.entry("manga-longa-ajax-22-23.jpg", "Adidas"),
+            Map.entry("manga-longa-inter-de-miami-26-27.jpg", "Adidas"),
+            Map.entry("manga-longa-retro-internacional-2006.jpg", "Reebok"),
+            Map.entry("manga-longa-retro-inglaterra-1990.jpg", "Adidas"),
+            Map.entry("manga-longa-retro-alemanha-90-91.jpg", "Adidas"),
+            Map.entry("manga-longa-retro-napoli-98-99.jpg", "Nike"));
 
     private final UsuarioRepository usuarioRepository;
     private final CategoriaRepository categoriaRepository;
@@ -146,9 +195,11 @@ public class DataSeeder implements CommandLineRunner {
 
         // --- Camisas com foto ---
         for (Camisa c : CAMISAS) {
-            Produto produto = new Produto(c.nome(), c.descricao(), new BigDecimal(c.preco()), c.estoque(),
-                    c.corPrincipal(), c.corTexto(), categorias.get(c.categoria()), vendedor);
+            Produto produto = new Produto(c.nome(), c.descricao(), new BigDecimal(c.preco()), distribuir(c.estoque()),
+                    c.corPrincipal(), c.corTexto(), c.categorias().stream().map(categorias::get).toList(), vendedor);
             produto.setImagemUrl(imagemService.copiarFotoDeExemplo(c.foto()));
+            produto.setAno(AnoCamisa.extrair(c.nome()));
+            produto.setMarca(MARCAS.get(c.foto()));
             produtoRepository.save(produto);
         }
 
@@ -157,39 +208,64 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     /**
-     * Bancos criados antes da busca sem acentos têm produtos com nome_busca vazio.
-     * Regravar o nome preenche a coluna (ver Produto.setNome).
+     * Bancos criados por versões anteriores têm colunas novas vazias. Completa:
+     * nome_busca (busca sem acentos), cor_familia (filtro por cor) e ano (pelo nome da camisa).
      */
     private void preencherNomeBuscaAntigo() {
-        produtoRepository.findByNomeBuscaIsNull().forEach(p -> p.setNome(p.getNome()));
+        produtoRepository.findByNomeBuscaIsNullOrCorFamiliaIsNullOrAnoIsNull().forEach(p -> {
+            p.setNome(p.getNome());
+            p.setCorPrincipal(p.getCorPrincipal());
+            if (p.getAno() == null) {
+                p.setAno(AnoCamisa.extrair(p.getNome()));
+            }
+        });
+    }
+
+    /** Pesos da grade: mais unidades em M e G, menos nas pontas (P e XGG). */
+    private static final Map<Tamanho, Integer> PESOS = new EnumMap<>(Map.of(
+            Tamanho.P, 1, Tamanho.M, 3, Tamanho.G, 3, Tamanho.GG, 2, Tamanho.XGG, 1));
+    private static final List<Tamanho> ORDEM_SOBRA = List.of(Tamanho.M, Tamanho.G, Tamanho.GG, Tamanho.P, Tamanho.XGG);
+
+    /** Divide o total da camisa pelos tamanhos. Ex.: 20 → P 2, M 6, G 6, GG 4, XGG 2. */
+    static Map<Tamanho, Integer> distribuir(int total) {
+        int somaPesos = PESOS.values().stream().mapToInt(Integer::intValue).sum();
+        Map<Tamanho, Integer> grade = new EnumMap<>(Tamanho.class);
+        PESOS.forEach((t, peso) -> grade.put(t, total * peso / somaPesos));
+        int sobra = total - grade.values().stream().mapToInt(Integer::intValue).sum();
+        for (int i = 0; i < sobra; i++) {
+            Tamanho t = ORDEM_SOBRA.get(i % ORDEM_SOBRA.size());
+            grade.put(t, grade.get(t) + 1);
+        }
+        return grade;
     }
 
     // ----- atalhos para montar a lista sem repetir textos -----
 
     private static Camisa torcedor(String categoria, String time, String temporada, String preco, int estoque,
                                    String cor, String corTexto, String foto) {
-        return new Camisa(categoria, "Camisa " + time + " " + temporada,
+        return new Camisa(List.of(categoria), "Camisa " + time + " " + temporada,
                 "Camisa " + time + " modelo torcedor, temporada " + temporada + ".",
                 preco, estoque, cor, corTexto, foto);
     }
 
     private static Camisa selecao(String pais, String preco, int estoque, String cor, String corTexto, String foto) {
-        return new Camisa("Seleções", "Camisa Seleção " + pais + " 26/27",
+        return new Camisa(List.of("Seleções"), "Camisa Seleção " + pais + " 26/27",
                 "Camisa " + pais + " para a Copa do Mundo, modelo torcedor.",
                 preco, estoque, cor, corTexto, foto);
     }
 
-    private static Camisa retro(String categoria, String time, String ano, String preco, int estoque,
+    /** A primeira categoria define o tipo ("Retrô" ou "Manga Longa Retrô"); as outras são extras. */
+    private static Camisa retro(List<String> categorias, String time, String ano, String preco, int estoque,
                                 String cor, String corTexto, String foto) {
-        String tipo = categoria.equals("Retrô") ? "Camisa Retrô " : "Camisa Manga Longa Retrô ";
-        return new Camisa(categoria, tipo + time + " " + ano,
+        String tipo = categorias.get(0).equals("Retrô") ? "Camisa Retrô " : "Camisa Manga Longa Retrô ";
+        return new Camisa(categorias, tipo + time + " " + ano,
                 "Réplica da camisa clássica " + time + " " + ano + ".",
                 preco, estoque, cor, corTexto, foto);
     }
 
-    private static Camisa mangaLonga(String time, String temporada, String preco, int estoque,
-                                     String cor, String corTexto, String foto) {
-        return new Camisa("Manga Longa", "Camisa Manga Longa " + time + " " + temporada,
+    private static Camisa mangaLonga(List<String> categorias, String time, String temporada, String preco,
+                                     int estoque, String cor, String corTexto, String foto) {
+        return new Camisa(categorias, "Camisa Manga Longa " + time + " " + temporada,
                 "Camisa " + time + " manga longa, modelo torcedor, temporada " + temporada + ".",
                 preco, estoque, cor, corTexto, foto);
     }

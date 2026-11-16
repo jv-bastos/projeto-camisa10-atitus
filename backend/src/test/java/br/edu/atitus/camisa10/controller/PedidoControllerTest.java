@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.ResultActions;
 
@@ -42,18 +43,20 @@ class PedidoControllerTest extends ApiTestBase {
     @Autowired
     private ProdutoRepository produtoRepository;
     @Autowired
+    private JdbcTemplate jdbc;
+    @Autowired
     private PedidoRepository pedidoRepository;
 
     @Test
     void totalDeveIncluirOAcrescimoDeCadaCamisaPersonalizada() throws Exception {
         Produto selecao = produto("Seleção Brasileira");
-        int estoqueAntes = estoque(selecao);
+        int estoqueAntes = estoque(selecao, "M");
 
         // 2 camisas personalizadas + 1 sem personalização
         JsonNode pedido = json(comprar("""
                 { "itens": [
-                    { "produtoId": %d, "quantidade": 2, "personalizacao": { "nome": "ronaldinho", "numero": 10 } },
-                    { "produtoId": %d, "quantidade": 1 } ] }
+                    { "produtoId": %d, "tamanho": "M", "quantidade": 2, "personalizacao": { "nome": "ronaldinho", "numero": 10 } },
+                    { "produtoId": %d, "tamanho": "M", "quantidade": 1 } ] }
                 """.formatted(selecao.getId(), selecao.getId()))
                 .andExpect(status().isCreated()));
 
@@ -66,28 +69,28 @@ class PedidoControllerTest extends ApiTestBase {
         assertThat(pedido.at("/itens/1/personalizacao").isNull()).isTrue();
         assertThat(pedido.at("/itens/1/valorPersonalizacao").decimalValue()).isEqualByComparingTo("0");
         // estoque baixado
-        assertThat(estoque(selecao)).isEqualTo(estoqueAntes - 3);
+        assertThat(estoque(selecao, "M")).isEqualTo(estoqueAntes - 3);
     }
 
     @Test
     void nomeCom13CaracteresDeveSerRejeitadoSemGravarNada() throws Exception {
-        Produto gremio = produto("Grêmio");
+        Produto inter = produto("Camisa Internacional 26/27");
         long pedidosAntes = pedidoRepository.count();
-        int estoqueAntes = estoque(gremio);
+        int estoqueAntes = estoque(inter, "M");
 
-        comprar(umItem(gremio.getId(), 1, "ABCDEFGHIJKLM", 10))
+        comprar(umItem(inter.getId(), 1, "ABCDEFGHIJKLM", 10))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.mensagem").value("O nome da personalização deve ter no máximo 12 caracteres."));
 
         assertThat(pedidoRepository.count()).isEqualTo(pedidosAntes);
-        assertThat(estoque(gremio)).isEqualTo(estoqueAntes);
+        assertThat(estoque(inter, "M")).isEqualTo(estoqueAntes);
     }
 
     @Test
     void numero100DeveSerRejeitado() throws Exception {
         long pedidosAntes = pedidoRepository.count();
 
-        comprar(umItem(produto("Grêmio").getId(), 1, "RENATO", 100))
+        comprar(umItem(produto("Camisa Internacional 26/27").getId(), 1, "FERNANDAO", 100))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.mensagem").value("O número da personalização deve estar entre 0 e 99."));
 
@@ -98,53 +101,53 @@ class PedidoControllerTest extends ApiTestBase {
     void comprarMaisQueOEstoqueDeveRetornarErroENaoCriarPedido() throws Exception {
         Produto holanda = produto("Holanda");
         long pedidosAntes = pedidoRepository.count();
-        int estoqueAntes = estoque(holanda);
+        int estoqueAntes = estoque(holanda, "M");
 
         comprar(umItem(holanda.getId(), estoqueAntes + 1, null, null))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.mensagem").value(
-                        "Estoque insuficiente para \"Camisa Retrô Holanda 1980\". Disponível: " + estoqueAntes + "."));
+                        "Estoque insuficiente para \"Camisa Retrô Holanda 1980\" (tamanho M). Disponível: " + estoqueAntes + "."));
 
         assertThat(pedidoRepository.count()).isEqualTo(pedidosAntes);
-        assertThat(estoque(holanda)).isEqualTo(estoqueAntes);
+        assertThat(estoque(holanda, "M")).isEqualTo(estoqueAntes);
     }
 
     @Test
     void compraEhTransacionalSeUmItemFalharNadaEhGravado() throws Exception {
-        Produto gremio = produto("Grêmio");
+        Produto inter = produto("Camisa Internacional 26/27");
         Produto holanda = produto("Holanda");
         long pedidosAntes = pedidoRepository.count();
-        int estoqueGremioAntes = estoque(gremio);
-        int estoqueHolandaAntes = estoque(holanda);
+        int estoqueInterAntes = estoque(inter, "M");
+        int estoqueHolandaAntes = estoque(holanda, "M");
 
-        // 1º item válido (baixaria o estoque do Grêmio), 2º item sem estoque
+        // 1º item válido (baixaria o estoque do Inter), 2º item sem estoque
         comprar("""
                 { "itens": [
-                    { "produtoId": %d, "quantidade": 1 },
-                    { "produtoId": %d, "quantidade": %d } ] }
-                """.formatted(gremio.getId(), holanda.getId(), estoqueHolandaAntes + 1))
+                    { "produtoId": %d, "tamanho": "M", "quantidade": 1 },
+                    { "produtoId": %d, "tamanho": "M", "quantidade": %d } ] }
+                """.formatted(inter.getId(), holanda.getId(), estoqueHolandaAntes + 1))
                 .andExpect(status().isBadRequest());
 
         // rollback: o estoque do 1º item voltou ao valor original
-        assertThat(estoque(gremio)).isEqualTo(estoqueGremioAntes);
-        assertThat(estoque(holanda)).isEqualTo(estoqueHolandaAntes);
+        assertThat(estoque(inter, "M")).isEqualTo(estoqueInterAntes);
+        assertThat(estoque(holanda, "M")).isEqualTo(estoqueHolandaAntes);
         assertThat(pedidoRepository.count()).isEqualTo(pedidosAntes);
     }
 
     @Test
     void mesmoProdutoEmDuasLinhasSomaAsQuantidadesNoEstoque() throws Exception {
         Produto holanda = produto("Holanda");
-        int estoqueAntes = estoque(holanda);
+        int estoqueAntes = estoque(holanda, "M");
 
         // linha 1 leva todo o estoque, linha 2 (personalizada) pede mais 1
         comprar("""
                 { "itens": [
-                    { "produtoId": %d, "quantidade": %d },
-                    { "produtoId": %d, "quantidade": 1, "personalizacao": { "nome": "GULLIT", "numero": 10 } } ] }
+                    { "produtoId": %d, "tamanho": "M", "quantidade": %d },
+                    { "produtoId": %d, "tamanho": "M", "quantidade": 1, "personalizacao": { "nome": "GULLIT", "numero": 10 } } ] }
                 """.formatted(holanda.getId(), estoqueAntes, holanda.getId()))
                 .andExpect(status().isBadRequest());
 
-        assertThat(estoque(holanda)).isEqualTo(estoqueAntes);
+        assertThat(estoque(holanda, "M")).isEqualTo(estoqueAntes);
     }
 
     @Test
@@ -184,6 +187,31 @@ class PedidoControllerTest extends ApiTestBase {
                         .add(barcelona.getPreco()).add(ACRESCIMO));
     }
 
+    @Test
+    void compraBaixaSoOEstoqueDoTamanhoEscolhido() throws Exception {
+        Produto inter = produto("Camisa Internacional 26/27");
+        int mAntes = estoque(inter, "M");
+        int gAntes = estoque(inter, "G");
+
+        comprar("""
+                { "itens": [ { "produtoId": %d, "tamanho": "G", "quantidade": 2 } ] }
+                """.formatted(inter.getId()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.itens[0].tamanho").value("G"));
+
+        assertThat(estoque(inter, "G")).isEqualTo(gAntes - 2);
+        assertThat(estoque(inter, "M")).isEqualTo(mAntes);
+    }
+
+    @Test
+    void itemSemTamanhoRetorna400() throws Exception {
+        comprar("""
+                { "itens": [ { "produtoId": %d, "quantidade": 1 } ] }
+                """.formatted(produto("Camisa Internacional 26/27").getId()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.campos['itens[0].tamanho']").value("Escolha o tamanho."));
+    }
+
     // ---------------------------------------------------------------- auxiliares
 
     private ResultActions comprar(String json) throws Exception {
@@ -194,7 +222,7 @@ class PedidoControllerTest extends ApiTestBase {
     private String umItem(Long produtoId, int quantidade, String nome, Integer numero) {
         String personalizacao = nome == null ? ""
                 : ", \"personalizacao\": { \"nome\": \"%s\", \"numero\": %d }".formatted(nome, numero);
-        return "{ \"itens\": [ { \"produtoId\": %d, \"quantidade\": %d%s } ] }"
+        return "{ \"itens\": [ { \"produtoId\": %d, \"tamanho\": \"M\", \"quantidade\": %d%s } ] }"
                 .formatted(produtoId, quantidade, personalizacao);
     }
 
@@ -204,8 +232,9 @@ class PedidoControllerTest extends ApiTestBase {
                 .findFirst().orElseThrow();
     }
 
-    /** Lê o estoque direto do banco (fora de transação, sempre o valor gravado). */
-    private int estoque(Produto produto) {
-        return produtoRepository.findById(produto.getId()).orElseThrow().getEstoque();
+    /** Lê o estoque de um tamanho direto do banco (fora de transação, sempre o valor gravado). */
+    private int estoque(Produto produto, String tamanho) {
+        return jdbc.queryForObject("select quantidade from produto_estoques where produto_id = ? and tamanho = ?",
+                Integer.class, produto.getId(), tamanho);
     }
 }

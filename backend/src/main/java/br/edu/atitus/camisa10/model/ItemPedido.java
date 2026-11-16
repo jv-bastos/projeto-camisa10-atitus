@@ -5,6 +5,8 @@ import java.math.BigDecimal;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -40,6 +42,11 @@ public class ItemPedido {
     @Column(nullable = false)
     private Integer quantidade;
 
+    /** Tamanho comprado. Pode ser nulo em pedidos feitos antes de existir a grade de tamanhos. */
+    @Enumerated(EnumType.STRING)
+    @Column(length = 4)
+    private Tamanho tamanho;
+
     @Column(name = "preco_unitario", nullable = false, precision = 10, scale = 2)
     private BigDecimal precoUnitario;
 
@@ -55,9 +62,10 @@ public class ItemPedido {
     protected ItemPedido() {
     }
 
-    public ItemPedido(Produto produto, Integer quantidade, BigDecimal precoUnitario,
+    public ItemPedido(Produto produto, Tamanho tamanho, Integer quantidade, BigDecimal precoUnitario,
                       BigDecimal valorPersonalizacao, Personalizacao personalizacao) {
         this.produto = produto;
+        this.tamanho = tamanho;
         this.quantidade = quantidade;
         this.precoUnitario = precoUnitario;
         this.valorPersonalizacao = valorPersonalizacao;
@@ -84,6 +92,10 @@ public class ItemPedido {
 
     public Produto getProduto() {
         return produto;
+    }
+
+    public Tamanho getTamanho() {
+        return tamanho;
     }
 
     public Integer getQuantidade() {

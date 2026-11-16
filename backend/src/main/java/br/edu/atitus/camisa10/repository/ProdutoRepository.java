@@ -21,14 +21,16 @@ public interface ProdutoRepository extends JpaRepository<Produto, Long> {
 
     /**
      * Catálogo (RF09): apenas produtos ativos, com filtro opcional por categoria
+     * (o produto aparece se QUALQUER uma das categorias dele for a escolhida)
      * e busca por parte do nome, sem diferenciar maiúsculas nem acentos
      * (compara com nomeBusca; o termo deve vir normalizado por TextoBusca).
      * Quando busca é "", o LIKE '%%' aceita todos os nomes.
      */
     @Query("""
-            select p from Produto p join fetch p.categoria c
+            select p from Produto p left join fetch p.categorias
             where p.ativo = true
-              and (:categoriaId is null or c.id = :categoriaId)
+              and (:categoriaId is null
+                   or exists (select 1 from Produto p2 join p2.categorias c2 where p2 = p and c2.id = :categoriaId))
               and p.nomeBusca like concat('%', :busca, '%')
             order by p.nome
             """)
@@ -38,8 +40,8 @@ public interface ProdutoRepository extends JpaRepository<Produto, Long> {
      * Busca o produto TRAVANDO a linha no banco até o fim da transação da compra.
      * Assim, dois pedidos simultâneos não conseguem vender a mesma última unidade.
      */
-    /** Produtos gravados antes de existir a coluna nome_busca (bancos PostgreSQL antigos). */
-    List<Produto> findByNomeBuscaIsNull();
+    /** Produtos gravados antes de existirem as colunas nome_busca, cor_familia e ano (bancos antigos). */
+    List<Produto> findByNomeBuscaIsNullOrCorFamiliaIsNullOrAnoIsNull();
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from Produto p where p.id = :id")

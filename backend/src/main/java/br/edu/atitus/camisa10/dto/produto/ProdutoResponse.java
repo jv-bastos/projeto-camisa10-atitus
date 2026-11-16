@@ -1,6 +1,7 @@
 package br.edu.atitus.camisa10.dto.produto;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import br.edu.atitus.camisa10.model.Produto;
 
@@ -15,13 +16,19 @@ public record ProdutoResponse(
         String descricao,
         BigDecimal preco,
         Integer estoque,
+        List<EstoqueTamanhoResponse> tamanhos,
         String imagemUrl,
         String corPrincipal,
         String corTexto,
-        CategoriaResponse categoria) {
+        String corFamilia,
+        Integer ano,
+        String marca,
+        List<CategoriaResponse> categorias) {
 
     public static ProdutoResponse de(Produto p) {
         return new ProdutoResponse(p.getId(), p.getNome(), p.getDescricao(), p.getPreco(), p.getEstoque(),
-                p.getImagemUrl(), p.getCorPrincipal(), p.getCorTexto(), CategoriaResponse.de(p.getCategoria()));
+                EstoqueTamanhoResponse.grade(p),
+                p.getImagemUrl(), p.getCorPrincipal(), p.getCorTexto(), p.getCorFamilia(), p.getAno(), p.getMarca(),
+                p.getCategorias().stream().map(CategoriaResponse::de).toList());
     }
 }

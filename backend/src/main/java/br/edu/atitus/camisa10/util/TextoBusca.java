@@ -5,7 +5,7 @@ import java.util.Locale;
 
 /**
  * Prepara textos para a busca do catálogo: tira acentos, deixa minúsculo e remove
- * espaços das pontas. Assim "gremio", "GRÊMIO" e "Grêmio" encontram o mesmo produto.
+ * espaços das pontas. Assim "sao paulo", "SÃO PAULO" e "São Paulo" encontram o mesmo produto.
  */
 public final class TextoBusca {
 

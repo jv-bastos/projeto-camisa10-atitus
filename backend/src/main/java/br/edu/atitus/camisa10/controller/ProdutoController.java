@@ -1,5 +1,6 @@
 package br.edu.atitus.camisa10.controller;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -19,9 +20,14 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import br.edu.atitus.camisa10.dto.produto.FiltroCatalogo;
+import br.edu.atitus.camisa10.dto.produto.FotoCatalogoRequest;
+import br.edu.atitus.camisa10.dto.produto.OpcoesFiltroResponse;
 import br.edu.atitus.camisa10.dto.produto.ProdutoRequest;
 import br.edu.atitus.camisa10.dto.produto.ProdutoResponse;
 import br.edu.atitus.camisa10.security.UsuarioLogado;
+import br.edu.atitus.camisa10.model.Tamanho;
+import br.edu.atitus.camisa10.service.CatalogoService;
 import br.edu.atitus.camisa10.service.ProdutoService;
 import jakarta.validation.Valid;
 
@@ -35,16 +41,36 @@ import jakarta.validation.Valid;
 public class ProdutoController {
 
     private final ProdutoService produtoService;
+    private final CatalogoService catalogoService;
 
-    public ProdutoController(ProdutoService produtoService) {
+    public ProdutoController(ProdutoService produtoService, CatalogoService catalogoService) {
         this.produtoService = produtoService;
+        this.catalogoService = catalogoService;
     }
 
-    /** GET /api/produtos?categoriaId=&busca= */
+    /**
+     * GET /api/produtos – vitrine com filtros e ordenação, todos opcionais:
+     * ?categoriaId=&busca=&precoMin=&precoMax=&anoMin=&anoMax=&cores=Branco,Preto&marcas=Nike&tamanho=GG&ordenar=preco
+     */
     @GetMapping
     public List<ProdutoResponse> listar(@RequestParam(required = false) Long categoriaId,
-                                        @RequestParam(required = false) String busca) {
-        return produtoService.listarCatalogo(categoriaId, busca);
+                                        @RequestParam(required = false) String busca,
+                                        @RequestParam(required = false) BigDecimal precoMin,
+                                        @RequestParam(required = false) BigDecimal precoMax,
+                                        @RequestParam(required = false) Integer anoMin,
+                                        @RequestParam(required = false) Integer anoMax,
+                                        @RequestParam(required = false) List<String> cores,
+                                        @RequestParam(required = false) List<String> marcas,
+                                        @RequestParam(required = false) Tamanho tamanho,
+                                        @RequestParam(required = false) String ordenar) {
+        return catalogoService.listar(new FiltroCatalogo(categoriaId, busca, precoMin, precoMax, anoMin, anoMax,
+                cores, marcas, tamanho, ordenar));
+    }
+
+    /** GET /api/produtos/filtros – opções do painel "Filtrar e ordenar" (marcas e cores existentes, faixas). */
+    @GetMapping("/filtros")
+    public OpcoesFiltroResponse opcoesDeFiltro() {
+        return catalogoService.opcoes();
     }
 
     /** GET /api/produtos/{id} */
@@ -79,5 +105,12 @@ public class ProdutoController {
     public ProdutoResponse enviarImagem(@PathVariable Long id, @RequestPart("imagem") MultipartFile imagem,
                                         @AuthenticationPrincipal Jwt token) {
         return produtoService.atualizarImagem(id, imagem, UsuarioLogado.id(token));
+    }
+
+    /** POST /api/produtos/{id}/imagem-catalogo  { "arquivo": "..." } – usa uma foto do catálogo do projeto */
+    @PostMapping("/{id}/imagem-catalogo")
+    public ProdutoResponse usarFotoDoCatalogo(@PathVariable Long id, @Valid @RequestBody FotoCatalogoRequest dados,
+                                              @AuthenticationPrincipal Jwt token) {
+        return produtoService.usarFotoDoCatalogo(id, dados.arquivo(), UsuarioLogado.id(token));
     }
 }

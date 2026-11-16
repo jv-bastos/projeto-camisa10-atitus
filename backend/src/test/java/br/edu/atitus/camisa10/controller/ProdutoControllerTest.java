@@ -1,11 +1,11 @@
 package br.edu.atitus.camisa10.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.endsWith;
-import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -24,6 +24,8 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 import br.edu.atitus.camisa10.ApiTestBase;
 import br.edu.atitus.camisa10.model.Produto;
@@ -65,7 +67,14 @@ class ProdutoControllerTest extends ApiTestBase {
                         .contentType(MediaType.APPLICATION_JSON).content(produtoJson("Camisa Teste", "199.90")))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.corPrincipal").value("#AABBCC")) // normalizada para maiúsculas
-                .andExpect(jsonPath("$.categoria.nome").value("Retrô")))
+                .andExpect(jsonPath("$.categorias[*].nome", containsInAnyOrder("Retrô", "Seleções")))
+                // grade completa na ordem P, M, G, GG, XGG; tamanhos não informados ficam com 0
+                .andExpect(jsonPath("$.estoque").value(3))
+                .andExpect(jsonPath("$.tamanhos[*].tamanho", contains("P", "M", "G", "GG", "XGG")))
+                .andExpect(jsonPath("$.tamanhos[*].quantidade", contains(1, 2, 0, 0, 0)))
+                .andExpect(jsonPath("$.ano").value(1994))
+                .andExpect(jsonPath("$.marca").value("Umbro"))
+                .andExpect(jsonPath("$.corFamilia").value("Azul-claro"))) // #AABBCC fica mais perto do azul-claro
                 .get("id").asLong();
 
         mvc.perform(put("/api/produtos/" + id).header("Authorization", vendedor)
@@ -83,14 +92,40 @@ class ProdutoControllerTest extends ApiTestBase {
         mvc.perform(post("/api/produtos").header("Authorization", bearer(VENDEDOR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                { "nome": "", "preco": 0, "estoque": -1, "categoriaId": 1,
+                                { "nome": "", "preco": 0, "estoques": { "P": -1, "M": 2 }, "categoriaIds": [],
                                   "corPrincipal": "amarelo", "corTexto": "#000000" }
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.campos.nome").value("Informe o nome do produto."))
                 .andExpect(jsonPath("$.campos.preco").value("O preço deve ser maior que zero."))
-                .andExpect(jsonPath("$.campos.estoque").value("O estoque não pode ser negativo."))
-                .andExpect(jsonPath("$.campos.corPrincipal").value("A cor principal deve estar no formato #RRGGBB."));
+                .andExpect(jsonPath("$.campos['estoques[P]']").value("O estoque não pode ser negativo."))
+                .andExpect(jsonPath("$.campos.corPrincipal").value("A cor principal deve estar no formato #RRGGBB."))
+                .andExpect(jsonPath("$.campos.categoriaIds").value("Escolha pelo menos uma categoria."))
+                .andExpect(jsonPath("$.campos.ano").value("Informe o ano da camisa."));
+    }
+
+    @Test
+    void marcaForaDaListaRetorna400() throws Exception {
+        mvc.perform(post("/api/produtos").header("Authorization", bearer(VENDEDOR))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                { "nome": "Camisa X", "preco": 10, "ano": 2026, "marca": "Inventada", "estoques": { "M": 1 },
+                                  "categoriaIds": [1], "corPrincipal": "#FFFFFF", "corTexto": "#000000" }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.mensagem").value("Marca inválida. Escolha uma das opções da lista."));
+    }
+
+    @Test
+    void categoriaInexistenteRetorna400() throws Exception {
+        mvc.perform(post("/api/produtos").header("Authorization", bearer(VENDEDOR))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                { "nome": "Camisa X", "preco": 10, "ano": 2026, "estoques": { "M": 1 }, "categoriaIds": [1, 9999],
+                                  "corPrincipal": "#FFFFFF", "corTexto": "#000000" }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.mensagem").value("Categoria informada não existe."));
     }
 
     @Test
@@ -130,19 +165,21 @@ class ProdutoControllerTest extends ApiTestBase {
     void catalogoFiltraPorCategoriaEBuscaPorNome() throws Exception {
         Long selecoes = categoriaRepository.findByNome("Seleções").orElseThrow().getId();
 
-        mvc.perform(get("/api/produtos").param("categoriaId", selecoes.toString()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(4)))
-                .andExpect(jsonPath("$[*].categoria.nome", everyItem(is("Seleções"))));
+        // camisas com várias categorias aparecem em cada uma delas (ex.: Retrô Brasil 2002 em Seleções)
+        JsonNode selecionadas = json(mvc.perform(get("/api/produtos").param("categoriaId", selecoes.toString()))
+                .andExpect(status().isOk()));
+        assertThat(selecionadas).hasSize(8);
+        assertThat(selecionadas).allSatisfy(p -> assertThat(p.get("categorias").findValuesAsText("nome")).contains("Seleções"));
+        assertThat(selecionadas.findValuesAsText("nome")).contains("Camisa Retrô Brasil 2002", "Camisa Seleção Brasileira 26/27");
 
         mvc.perform(get("/api/produtos").param("busca", "barcelona"))
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].nome").value("Camisa Barcelona 26/27"));
 
         // a busca ignora acentos e maiúsculas
-        mvc.perform(get("/api/produtos").param("busca", "GREMIO"))
+        mvc.perform(get("/api/produtos").param("busca", "MONACO"))
                 .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].nome").value("Camisa Grêmio 26/27"));
+                .andExpect(jsonPath("$[0].nome").value("Camisa Mônaco 26/27"));
         mvc.perform(get("/api/produtos").param("busca", "selecao bras"))
                 .andExpect(jsonPath("$[0].nome").value("Camisa Seleção Brasileira 26/27"));
 
@@ -188,14 +225,72 @@ class ProdutoControllerTest extends ApiTestBase {
                 .andExpect(jsonPath("$.maxCaracteresNome").value(12));
     }
 
+    @Test
+    void catalogoDeFotosFiltraPorBuscaECategoriaESoParaVendedor() throws Exception {
+        String vendedor = bearer(VENDEDOR);
+        Long brasileirao = categoriaRepository.findByNome("Brasileirão").orElseThrow().getId();
+
+        JsonNode inter = json(mvc.perform(get("/api/vendedor/fotos-catalogo").header("Authorization", vendedor)
+                        .param("busca", "internacional 1997"))
+                .andExpect(status().isOk()));
+        assertThat(inter).hasSize(1);
+        JsonNode primeira = inter.get(0);
+        assertThat(primeira.get("nome").asText()).isEqualTo("Camisa Retrô Internacional 1997");
+        assertThat(primeira.get("categorias").findValuesAsText("nome")).containsExactly("Brasileirão", "Retrô");
+        assertThat(primeira.get("miniaturaUrl").asText()).startsWith("/catalogo-fotos/miniaturas/");
+        assertThat(primeira.get("ano").asInt()).isEqualTo(1997); // sugerido pelo nome
+
+        JsonNode doBrasileirao = json(mvc.perform(get("/api/vendedor/fotos-catalogo").header("Authorization", vendedor)
+                .param("categoriaId", brasileirao.toString())));
+        assertThat(doBrasileirao.size()).isGreaterThan(300); // 221 atuais + retrôs + manga longa
+        assertThat(doBrasileirao).allSatisfy(f -> assertThat(f.get("categorias").findValuesAsText("nome")).contains("Brasileirão"));
+
+        // a busca olha só o nome da camisa: "brasil" não traz os times da pasta "Brasileirão"
+        JsonNode brasil = json(mvc.perform(get("/api/vendedor/fotos-catalogo").header("Authorization", vendedor)
+                .param("busca", "brasil")));
+        assertThat(brasil).isNotEmpty();
+        brasil.forEach(f -> assertThat(f.get("nome").asText().toLowerCase()).contains("brasil"));
+        assertThat(brasil.findValuesAsText("arquivo")).noneMatch(a -> a.contains("flamengo") || a.contains("corinthians"));
+
+        // a miniatura é servida como arquivo estático
+        mvc.perform(get(primeira.get("miniaturaUrl").asText())).andExpect(status().isOk());
+
+        mvc.perform(get("/api/vendedor/fotos-catalogo").header("Authorization", bearer(COMPRADOR)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void vendedorUsaFotoDoCatalogoNoProduto() throws Exception {
+        String vendedor = bearer(VENDEDOR);
+        long id = json(mvc.perform(post("/api/produtos").header("Authorization", vendedor)
+                .contentType(MediaType.APPLICATION_JSON).content(produtoJson("Camisa Do Catálogo", "99.90"))))
+                .get("id").asLong();
+        String arquivo = json(mvc.perform(get("/api/vendedor/fotos-catalogo").header("Authorization", vendedor)
+                .param("busca", "internacional 1997"))).get(0).get("arquivo").asText();
+
+        String imagemUrl = json(mvc.perform(post("/api/produtos/" + id + "/imagem-catalogo").header("Authorization", vendedor)
+                        .contentType(MediaType.APPLICATION_JSON).content("{ \"arquivo\": \"%s\" }".formatted(arquivo)))
+                .andExpect(status().isOk()))
+                .get("imagemUrl").asText();
+        assertThat(imagemUrl).startsWith("/uploads/");
+        mvc.perform(get(imagemUrl)).andExpect(status().isOk());
+
+        // só arquivos que estão no catálogo são aceitos (nada de "../")
+        mvc.perform(post("/api/produtos/" + id + "/imagem-catalogo").header("Authorization", vendedor)
+                        .contentType(MediaType.APPLICATION_JSON).content("{ \"arquivo\": \"../../pom.xml\" }"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.mensagem").value("Foto do catálogo não encontrada."));
+    }
+
     // ---------------------------------------------------------------- auxiliares
 
     private String produtoJson(String nome, String preco) {
         Long retro = categoriaRepository.findByNome("Retrô").orElseThrow().getId();
+        Long selecoes = categoriaRepository.findByNome("Seleções").orElseThrow().getId();
         return """
-                { "nome": "%s", "descricao": "Teste", "preco": %s, "estoque": 3,
-                  "categoriaId": %d, "corPrincipal": "#aabbcc", "corTexto": "#FFFFFF" }
-                """.formatted(nome, preco, retro);
+                { "nome": "%s", "descricao": "Teste", "preco": %s, "ano": 1994, "marca": "Umbro", "estoques": { "P": 1, "M": 2 },
+                  "categoriaIds": [%d, %d], "corPrincipal": "#aabbcc", "corTexto": "#FFFFFF" }
+                """.formatted(nome, preco, retro, selecoes);
     }
 
     private String cadastrarOutroVendedor() throws Exception {

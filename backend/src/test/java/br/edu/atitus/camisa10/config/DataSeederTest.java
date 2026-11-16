@@ -18,6 +18,7 @@ import br.edu.atitus.camisa10.model.Pedido;
 import br.edu.atitus.camisa10.model.Perfil;
 import br.edu.atitus.camisa10.model.Personalizacao;
 import br.edu.atitus.camisa10.model.Produto;
+import br.edu.atitus.camisa10.model.Tamanho;
 import br.edu.atitus.camisa10.model.Usuario;
 import br.edu.atitus.camisa10.repository.CategoriaRepository;
 import br.edu.atitus.camisa10.repository.PedidoRepository;
@@ -78,13 +79,24 @@ class DataSeederTest {
             assertThat(p.getCorPrincipal()).matches("#[0-9A-F]{6}");
             assertThat(p.getCorTexto()).matches("#[0-9A-F]{6}");
             assertThat(p.getEstoque()).isPositive();
+            assertThat(p.getAno()).isBetween(1980, 2026);
+            assertThat(p.getMarca()).isNotBlank();
+            assertThat(p.getCorFamilia()).isNotBlank();
+            // o total é a soma da grade de tamanhos
+            assertThat(p.getEstoques().values().stream().mapToInt(Integer::intValue).sum()).isEqualTo(p.getEstoque());
             // a foto foi copiada para a pasta de uploads e existe de verdade
             assertThat(p.getImagemUrl()).startsWith(ImagemService.PREFIXO_URL);
             assertThat(imagemService.getPasta()
                     .resolve(p.getImagemUrl().substring(ImagemService.PREFIXO_URL.length()))).exists();
         });
         // todas as categorias têm pelo menos uma camisa
-        assertThat(produtos.stream().map(p -> p.getCategoria().getNome()).distinct()).hasSize(10);
+        assertThat(produtos.stream().flatMap(p -> p.getCategorias().stream()).map(Categoria::getNome).distinct())
+                .hasSize(10);
+        // camisas com mais de uma categoria
+        Produto brasil2002 = produtos.stream().filter(p -> p.getNome().equals("Camisa Retrô Brasil 2002")).findFirst().orElseThrow();
+        assertThat(brasil2002.getCategorias()).extracting(Categoria::getNome).containsExactly("Seleções", "Retrô");
+        Produto corinthians2000 = produtos.stream().filter(p -> p.getNome().equals("Camisa Retrô Corinthians 2000")).findFirst().orElseThrow();
+        assertThat(corinthians2000.getCategorias()).extracting(Categoria::getNome).containsExactly("Brasileirão", "Retrô");
     }
 
     @Test
@@ -95,9 +107,9 @@ class DataSeederTest {
 
         Pedido pedido = new Pedido(comprador);
         // 2 camisas personalizadas + 1 sem personalização
-        pedido.adicionarItem(new ItemPedido(produto, 2, produto.getPreco(), acrescimo,
+        pedido.adicionarItem(new ItemPedido(produto, Tamanho.M, 2, produto.getPreco(), acrescimo,
                 new Personalizacao("RONALDINHO", 10)));
-        pedido.adicionarItem(new ItemPedido(produto, 1, produto.getPreco(), BigDecimal.ZERO, null));
+        pedido.adicionarItem(new ItemPedido(produto, Tamanho.G, 1, produto.getPreco(), BigDecimal.ZERO, null));
         pedidoRepository.saveAndFlush(pedido);
 
         Pedido salvo = pedidoRepository.findByCompradorIdOrderByDataCriacaoDescIdDesc(comprador.getId()).get(0);
@@ -108,5 +120,6 @@ class DataSeederTest {
         assertThat(salvo.getItens()).hasSize(2);
         assertThat(salvo.getItens().get(0).getPersonalizacao().getNome()).isEqualTo("RONALDINHO");
         assertThat(salvo.getItens().get(1).getPersonalizacao()).isNull();
+        assertThat(salvo.getItens()).extracting(ItemPedido::getTamanho).containsExactly(Tamanho.M, Tamanho.G);
     }
 }

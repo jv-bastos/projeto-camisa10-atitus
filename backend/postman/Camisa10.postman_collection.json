@@ -9,6 +9,7 @@
     { "key": "tokenVendedor", "value": "" },
     { "key": "tokenComprador", "value": "" },
     { "key": "produtoCriadoId", "value": "" },
+    { "key": "fotoCatalogo", "value": "" },
     { "key": "pedidoId", "value": "" }
   ],
   "item": [
@@ -162,7 +163,7 @@
           "name": "Filtrar por categoria (?categoriaId=7 = Seleções)",
           "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
             "pm.test('Status 200', () => pm.response.to.have.status(200));",
-            "pm.test('Só Seleções', () => pm.response.json().forEach(p => pm.expect(p.categoria.nome).to.eql('Seleções')));"
+            "pm.test('Todas estão em Seleções (podem ter outras categorias também)', () => pm.response.json().forEach(p => pm.expect(p.categorias.map(c => c.nome)).to.include('Seleções')));"
           ] } }],
           "request": {
             "method": "GET",
@@ -177,6 +178,81 @@
             "pm.test('Tem as cores da camisa', () => { const p = pm.response.json(); pm.expect(p.corPrincipal).to.match(/^#[0-9A-F]{6}$/); pm.expect(p.corTexto).to.match(/^#[0-9A-F]{6}$/); });"
           ] } }],
           "request": { "method": "GET", "url": "{{baseUrl}}/api/produtos/26" }
+        },
+        {
+          "name": "Vitrine filtrada (amarelas, até R$ 400, 2000–2026, tamanho G, menor preço)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const lista = pm.response.json();",
+                  "pm.test('Só amarelas, dentro da faixa, com G em estoque', () => lista.forEach(p => { pm.expect(p.corFamilia).to.eql('Amarelo'); pm.expect(p.preco).to.be.at.most(400); pm.expect(p.ano).to.be.within(2000, 2026); pm.expect(p.tamanhos.find(t => t.tamanho === 'G').quantidade).to.be.above(0); }));",
+                  "pm.test('Ordenadas do menor para o maior preço', () => { for (let i = 1; i < lista.length; i++) pm.expect(lista[i].preco).to.be.at.least(lista[i - 1].preco); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/produtos?cores=Amarelo&precoMax=400&anoMin=2000&anoMax=2026&tamanho=G&ordenar=preco",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "produtos"
+              ],
+              "query": [
+                {
+                  "key": "cores",
+                  "value": "Amarelo"
+                },
+                {
+                  "key": "precoMax",
+                  "value": "400"
+                },
+                {
+                  "key": "anoMin",
+                  "value": "2000"
+                },
+                {
+                  "key": "anoMax",
+                  "value": "2026"
+                },
+                {
+                  "key": "tamanho",
+                  "value": "G"
+                },
+                {
+                  "key": "ordenar",
+                  "value": "preco"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Opções do painel de filtros",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Traz marcas, cores, tamanhos e 8 ordenações', () => { const o = pm.response.json(); pm.expect(o.marcas).to.include('Nike'); pm.expect(o.tamanhos).to.eql(['P', 'M', 'G', 'GG', 'XGG']); pm.expect(o.ordenacoes.length).to.eql(8); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/produtos/filtros"
+          }
         },
         {
           "name": "Configuração da personalização",
@@ -200,7 +276,7 @@
             "method": "POST",
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenComprador}}", "type": "string" }] },
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Camisa Pirata\",\n  \"preco\": 10,\n  \"estoque\": 1,\n  \"categoriaId\": 1,\n  \"corPrincipal\": \"#000000\",\n  \"corTexto\": \"#FFFFFF\"\n}" },
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Camisa Pirata\",\n  \"ano\": 2026,\n  \"preco\": 10,\n  \"estoques\": { \"M\": 1 },\n  \"categoriaIds\": [1],\n  \"corPrincipal\": \"#000000\",\n  \"corTexto\": \"#FFFFFF\"\n}" },
             "url": "{{baseUrl}}/api/produtos"
           }
         },
@@ -227,7 +303,7 @@
             "method": "POST",
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenComprador}}", "type": "string" }] },
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"itens\": [\n    { \"produtoId\": 26, \"quantidade\": 2, \"personalizacao\": { \"nome\": \"Ronaldinho\", \"numero\": 10 } },\n    { \"produtoId\": 26, \"quantidade\": 1 }\n  ]\n}" },
+            "body": { "mode": "raw", "raw": "{\n  \"itens\": [\n    { \"produtoId\": 26, \"tamanho\": \"M\", \"quantidade\": 2, \"personalizacao\": { \"nome\": \"Ronaldinho\", \"numero\": 10 } },\n    { \"produtoId\": 26, \"tamanho\": \"M\", \"quantidade\": 1 }\n  ]\n}" },
             "url": "{{baseUrl}}/api/pedidos"
           }
         },
@@ -241,7 +317,7 @@
             "method": "POST",
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenComprador}}", "type": "string" }] },
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"itens\": [\n    { \"produtoId\": 1, \"quantidade\": 1, \"personalizacao\": { \"nome\": \"ABCDEFGHIJKLM\", \"numero\": 10 } }\n  ]\n}" },
+            "body": { "mode": "raw", "raw": "{\n  \"itens\": [\n    { \"produtoId\": 2, \"tamanho\": \"M\", \"quantidade\": 1, \"personalizacao\": { \"nome\": \"ABCDEFGHIJKLM\", \"numero\": 10 } }\n  ]\n}" },
             "url": "{{baseUrl}}/api/pedidos"
           }
         },
@@ -255,7 +331,7 @@
             "method": "POST",
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenComprador}}", "type": "string" }] },
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"itens\": [\n    { \"produtoId\": 1, \"quantidade\": 1, \"personalizacao\": { \"nome\": \"RENATO\", \"numero\": 100 } }\n  ]\n}" },
+            "body": { "mode": "raw", "raw": "{\n  \"itens\": [\n    { \"produtoId\": 2, \"tamanho\": \"M\", \"quantidade\": 1, \"personalizacao\": { \"nome\": \"FERNANDAO\", \"numero\": 100 } }\n  ]\n}" },
             "url": "{{baseUrl}}/api/pedidos"
           }
         },
@@ -269,7 +345,7 @@
             "method": "POST",
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenComprador}}", "type": "string" }] },
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"itens\": [\n    { \"produtoId\": 31, \"quantidade\": 999 }\n  ]\n}" },
+            "body": { "mode": "raw", "raw": "{\n  \"itens\": [\n    { \"produtoId\": 31, \"tamanho\": \"M\", \"quantidade\": 999 }\n  ]\n}" },
             "url": "{{baseUrl}}/api/pedidos"
           }
         },
@@ -346,14 +422,101 @@
           "name": "Criar produto (salva o id)",
           "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
             "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "pm.test('Duas categorias: Seleções e Retrô', () => pm.expect(pm.response.json().categorias.map(c => c.nome)).to.eql(['Seleções', 'Retrô']));",
             "pm.collectionVariables.set('produtoCriadoId', pm.response.json().id);"
           ] } }],
           "request": {
             "method": "POST",
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenVendedor}}", "type": "string" }] },
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Camisa Retrô Brasil 1970\",\n  \"descricao\": \"Réplica da camisa do tri.\",\n  \"preco\": 279.90,\n  \"estoque\": 12,\n  \"categoriaId\": 8,\n  \"corPrincipal\": \"#FFD100\",\n  \"corTexto\": \"#00843D\"\n}" },
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Camisa Retrô Brasil 1994\",\n  \"descricao\": \"Réplica da camisa do tetra.\",\n  \"preco\": 279.90,\n  \"ano\": 1994,\n  \"marca\": \"Umbro\",\n  \"estoques\": { \"P\": 2, \"M\": 4, \"G\": 3, \"GG\": 2, \"XGG\": 1 },\n  \"categoriaIds\": [7, 8],\n  \"corPrincipal\": \"#FFD100\",\n  \"corTexto\": \"#00843D\"\n}" },
             "url": "{{baseUrl}}/api/produtos"
+          }
+        },
+        {
+          "name": "Catálogo de fotos (?busca=brasil 1994) – salva a 1ª foto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const fotos = pm.response.json();",
+                  "pm.test('Encontrou fotos com nome e categorias sugeridos', () => { pm.expect(fotos.length).to.be.above(0); pm.expect(fotos[0].categorias.length).to.be.above(0); });",
+                  "pm.collectionVariables.set('fotoCatalogo', fotos[0].arquivo);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenVendedor}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/vendedor/fotos-catalogo?busca=brasil 1994",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vendedor",
+                "fotos-catalogo"
+              ],
+              "query": [
+                {
+                  "key": "busca",
+                  "value": "brasil 1994"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Usar foto do catálogo no produto criado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Produto ganhou a foto', () => pm.expect(pm.response.json().imagemUrl.startsWith('/uploads/')).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenVendedor}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"arquivo\": \"{{fotoCatalogo}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/produtos/{{produtoCriadoId}}/imagem-catalogo"
           }
         },
         {
@@ -366,7 +529,7 @@
             "method": "PUT",
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenVendedor}}", "type": "string" }] },
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Camisa Retrô Brasil 1970\",\n  \"descricao\": \"Réplica da camisa do tri. PROMOÇÃO!\",\n  \"preco\": 249.90,\n  \"estoque\": 12,\n  \"categoriaId\": 8,\n  \"corPrincipal\": \"#FFD100\",\n  \"corTexto\": \"#00843D\"\n}" },
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Camisa Retrô Brasil 1994\",\n  \"descricao\": \"Réplica da camisa do tetra. PROMOÇÃO!\",\n  \"preco\": 249.90,\n  \"ano\": 1994,\n  \"marca\": \"Umbro\",\n  \"estoques\": { \"P\": 2, \"M\": 4, \"G\": 3, \"GG\": 2, \"XGG\": 1 },\n  \"categoriaIds\": [7, 8],\n  \"corPrincipal\": \"#FFD100\",\n  \"corTexto\": \"#00843D\"\n}" },
             "url": "{{baseUrl}}/api/produtos/{{produtoCriadoId}}"
           }
         },
@@ -395,7 +558,7 @@
       "description": "Antes de enviar: aba Body → form-data → na linha 'imagem', clique em 'Select files' e escolha uma foto JPG/PNG/WEBP de até 5 MB.",
       "item": [
         {
-          "name": "Enviar foto do produto 1",
+          "name": "Enviar foto do produto 2 (Internacional)",
           "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
             "pm.test('Status 200', () => pm.response.to.have.status(200));",
             "pm.test('Devolve a URL da imagem', () => pm.expect(pm.response.json().imagemUrl).to.match(/^\\/uploads\\//));",
@@ -405,7 +568,7 @@
             "method": "POST",
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tokenVendedor}}", "type": "string" }] },
             "body": { "mode": "formdata", "formdata": [{ "key": "imagem", "type": "file", "src": [] }] },
-            "url": "{{baseUrl}}/api/produtos/1/imagem"
+            "url": "{{baseUrl}}/api/produtos/2/imagem"
           }
         }
       ]

@@ -83,6 +83,19 @@ public class ImagemService {
         return PREFIXO_URL + nomeArquivo;
     }
 
+    /** Copia uma imagem que já está no servidor (ex.: catálogo de fotos) para a pasta de uploads. */
+    public String copiarArquivo(Path origem) {
+        String nome = origem.getFileName().toString().toLowerCase();
+        String extensao = nome.endsWith(".png") ? ".png" : nome.endsWith(".webp") ? ".webp" : ".jpg";
+        String nomeArquivo = UUID.randomUUID() + extensao;
+        try {
+            Files.copy(origem, pasta.resolve(nomeArquivo), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new IllegalStateException("Falha ao copiar a imagem.", e);
+        }
+        return PREFIXO_URL + nomeArquivo;
+    }
+
     /** Apaga uma imagem antiga (usado quando o vendedor troca a foto). Falhas só vão para o log. */
     public void excluir(String url) {
         if (url == null || !url.startsWith(PREFIXO_URL)) {
