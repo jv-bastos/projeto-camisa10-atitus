@@ -16,7 +16,7 @@ import CampoBusca from '../../components/CampoBusca';
 import CartaoProduto from '../../components/CartaoProduto';
 import Chip from '../../components/Chip';
 import EstadoVazio from '../../components/EstadoVazio';
-import FiltrosVitrine, { contarFiltrosAtivos, FILTROS_VAZIOS, filtrosParaApi } from '../../components/FiltrosVitrine';
+import FiltrosVitrine from '../../components/FiltrosVitrine';
 import Icone from '../../components/Icone';
 import MensagemErro from '../../components/MensagemErro';
 import TituloTela from '../../components/TituloTela';
@@ -24,6 +24,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { mensagemDeErro } from '../../services/api';
 import { buscarOpcoesFiltro, listarCategorias, listarProdutos } from '../../services/catalogoService';
 import { cores, espacos, fontes, raios, tipografia } from '../../theme';
+import { contarFiltrosAtivos, FILTROS_VAZIOS, filtrosParaApi } from '../../utils/filtros';
 
 const ESPERA_BUSCA_MS = 400;
 

@@ -4,53 +4,11 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import { cores, espacos, fontes, raios, tipografia } from '../theme';
 import { PALETA } from '../utils/coresCamisa';
+import { FILTROS_VAZIOS } from '../utils/filtros';
 import Botao from './Botao';
 import Chip from './Chip';
 import Icone from './Icone';
 import TituloTela from './TituloTela';
-
-/** Filtros sem nada escolhido (ordenação padrão: nome A–Z). */
-export const FILTROS_VAZIOS = {
-  ordenar: 'nome',
-  precoMin: '',
-  precoMax: '',
-  anoMin: '',
-  anoMax: '',
-  cores: [],
-  marcas: [],
-  tamanho: null,
-};
-
-/** Quantos filtros estão ativos (para o número no botão "Filtrar"). A ordenação não conta. */
-export function contarFiltrosAtivos(f) {
-  return (
-    (f.precoMin || f.precoMax ? 1 : 0) +
-    (f.anoMin || f.anoMax ? 1 : 0) +
-    (f.cores.length ? 1 : 0) +
-    (f.marcas.length ? 1 : 0) +
-    (f.tamanho ? 1 : 0)
-  );
-}
-
-/** "R$ 299,90" → "299.90" (o backend recebe ponto como decimal). */
-function precoParaApi(texto) {
-  const limpo = String(texto).replace(/[^\d,.]/g, '');
-  return limpo.includes(',') ? limpo.replace(/\./g, '').replace(',', '.') : limpo;
-}
-
-/** Converte os valores do painel para os parâmetros de GET /api/produtos. */
-export function filtrosParaApi(f) {
-  return {
-    ordenar: f.ordenar,
-    precoMin: precoParaApi(f.precoMin),
-    precoMax: precoParaApi(f.precoMax),
-    anoMin: f.anoMin,
-    anoMax: f.anoMax,
-    cores: f.cores,
-    marcas: f.marcas,
-    tamanho: f.tamanho,
-  };
-}
 
 /**
  * Painel "Filtrar e ordenar" da vitrine. Edita uma cópia dos filtros e só

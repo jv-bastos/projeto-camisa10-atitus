@@ -16,24 +16,13 @@ import { listarCategorias } from '../../services/catalogoService';
 import { enviarFoto, salvarProduto, usarFotoDoCatalogo } from '../../services/vendedorService';
 import { cores, espacos, fontes, raios, tipografia } from '../../theme';
 import { nomeDaCor, PALETA } from '../../utils/coresCamisa';
+import { lerPreco } from '../../utils/preco';
 import { MARCAS } from '../../utils/marcas';
 import { estoqueDoTamanho, TAMANHOS } from '../../utils/tamanhos';
 
 const CORES_PALETA = PALETA.map((c) => c.hex);
 
 const OPCOES_FOTO = { mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.7 };
-
-/**
- * Lê o preço digitado: "299,90", "1.299,90" ou "299.90" → número.
- * Com vírgula, o ponto é separador de milhar; sem vírgula, o ponto é o decimal
- * (alguns teclados Android só mostram ponto). Texto inválido → NaN.
- */
-function lerPreco(texto) {
-  const limpo = String(texto).trim();
-  if (!limpo) return NaN;
-  const normalizado = limpo.includes(',') ? limpo.replace(/\./g, '').replace(',', '.') : limpo;
-  return /^\d+(\.\d{1,2})?$/.test(normalizado) ? Number(normalizado) : NaN;
-}
 
 function mesmaLista(a, b) {
   return a.length === b.length && a.every((x) => b.includes(x));
@@ -398,7 +387,6 @@ function SeletorCor({ valor, onChange }) {
 }
 
 const estilos = StyleSheet.create({
-  flex: { flex: 1 },
   voltar: { width: 44, height: 44, marginLeft: -10, alignItems: 'center', justifyContent: 'center' },
   titulo: { marginTop: espacos.sm, marginBottom: espacos.lg },
   rotulo: { ...tipografia.rotulo, color: cores.textoSecundario, marginBottom: espacos.sm },
